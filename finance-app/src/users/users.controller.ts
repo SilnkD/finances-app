@@ -1,11 +1,15 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user-dto';
 import { UsersService } from './users.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from './users.model';
+import { RolesGuard } from './roles/roles.guard';
+import { Roles } from './roles/roles.decorator';
+import { Role } from './roles/roles.enum';
 
 @ApiTags('Пользователи')
 @Controller('users')
+@UseGuards(RolesGuard)
 export class UsersController {
 
     constructor (private usersService: UsersService) {}
@@ -17,9 +21,10 @@ export class UsersController {
         return this.usersService.createUser(userDto);
     }
 
-    @ApiOperation({summary: 'Получение всех пользователей'})
+    @ApiOperation({summary: 'ADMIN/Получение всех пользователей'})
     @ApiResponse({status: 200, type: [User]}) //массив пользователей
-    @Get()
+    @Roles(Role.Admin)
+    @Get('admin')
     getAll() {
         return this.usersService.getAllUsers();
     }

@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { AllowNull, AutoIncrement, Column, DataType, Model, PrimaryKey, Table } from "sequelize-typescript";
+import { Column, DataType, Model, Table } from "sequelize-typescript";
+import { Role } from "./roles/roles.enum";
 
 interface UserCreationAttrs {
     email: string;
@@ -19,4 +20,8 @@ export class User extends Model <User, UserCreationAttrs> {
     @ApiProperty({example: 'password123', description: 'Пароль'})
     @Column({type: DataType.STRING, allowNull: false})
     password: string;
+
+    @ApiProperty({example: 'ADMIN', description: 'Роль пользователя (ADMIN/USER)'})
+    @Column({type: DataType.ENUM, values: Object.values(Role), allowNull: false, defaultValue: Role.User})
+    role: Role;
 }
