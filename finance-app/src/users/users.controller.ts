@@ -4,7 +4,7 @@ import { UsersService } from './users.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from './users.model';
 import { RolesGuard } from '../roles/roles.guard';
-import { Roles } from '../roles/roles.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../roles/roles.enum';
 import { AssignRoleDto } from './dto/assign-role-dto';
 
