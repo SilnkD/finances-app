@@ -3,7 +3,7 @@ import { User } from './users.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { CreateUserDto } from './dto/create-user-dto';
 import { AssignRoleDto } from './dto/assign-role-dto';
-import { Role } from 'src/roles/roles.enum';
+import { Role } from 'src/common/enums/roles.enum';
 
 @Injectable()
 export class UsersService {
@@ -34,6 +34,11 @@ export class UsersService {
 
     async getUsersByEmail(email: string) {
         const user = await this.userRepository.findOne({where:{email}});
+        return user;
+    }
+
+    async getUsersByName(username: string) {
+        const user = await this.userRepository.findOne({where:{username}});
         return user;
     }
 }

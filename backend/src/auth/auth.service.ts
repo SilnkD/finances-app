@@ -4,6 +4,7 @@ import { CreateUserDto } from 'src/users/dto/create-user-dto';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { User } from 'src/users/users.model';
+import { LoginDto } from './dto/login-dto';
 
 @Injectable()
 export class AuthService {
@@ -11,10 +12,13 @@ export class AuthService {
     constructor(private userService: UsersService,
                 private jwtService: JwtService) {}
     
-    async login(loginDto: CreateUserDto) {
-        const user = await this.userService.getUsersByEmail(loginDto.email);
-        if (user && await bcrypt.compare(loginDto.password, user.password)) {
-            return this.generateToken(user);
+    async login(loginDto: LoginDto) {
+        const user_by_email = await this.userService.getUsersByEmail(loginDto.user);
+        const user_by_name = await this.userService.getUsersByName(loginDto.user);
+        if (user_by_email && await bcrypt.compare(loginDto.password, user_by_email.password)) {
+            return this.generateToken(user_by_email);
+        } else if (user_by_name && await bcrypt.compare(loginDto.password, user_by_name.password)) {
+            return this.generateToken(user_by_name);
         }
         throw new HttpException('Неправильный email или пароль', HttpStatus.UNAUTHORIZED);
     }
