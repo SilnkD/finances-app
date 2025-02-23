@@ -42,10 +42,20 @@ export class UsersService {
         return user;
     }
 
+    async getUserById(id: number) {
+        const user = await this.userRepository.findOne({where:{id}});
+        return user;
+    }
+
     async deleteUser(id: number) {
         const user = await this.userRepository.destroy({where:{id}});
         if (user>0)
             return `Пользователь с id ${id} удален.`;
         else return new HttpException('Невалидный токен', HttpStatus.NOT_FOUND)
+    }
+
+    async updateUser(username: string, password: string, id: number) {
+        const user = await this.userRepository.update({username, password}, {where:{id}});
+        return user;
     }
 }

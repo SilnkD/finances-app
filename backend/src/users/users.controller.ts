@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from './users.model';
 import { RolesGuard } from './roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';

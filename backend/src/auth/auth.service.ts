@@ -5,6 +5,7 @@ import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { User } from 'src/users/users.model';
 import { LoginDto } from './dto/login-dto';
+import { UpdateUserDto } from './dto/update-user-dto';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +34,15 @@ export class AuthService {
         return this.generateToken(user);
     }
 
+    
+    async updateUser(dto: UpdateUserDto, id: number) {
+        const hashPassword = await bcrypt.hash(dto.password, 5);
+        const username = dto.username;
+        await this.userService.updateUser(username, hashPassword, id );
+        const user = await this.userService.getUserById(id);
+        return user;
+    }
+    
     generateToken (user: User) {
         const payload = {id: user.id, email: user.email, role: user.role};
         return {
