@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { User } from './users.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { CreateUserDto } from './dto/create-user-dto';
@@ -40,5 +40,12 @@ export class UsersService {
     async getUsersByName(username: string) {
         const user = await this.userRepository.findOne({where:{username}});
         return user;
+    }
+
+    async deleteUser(id: number) {
+        const user = await this.userRepository.destroy({where:{id}});
+        if (user>0)
+            return `Пользователь с id ${id} удален.`;
+        else return new HttpException('Невалидный токен', HttpStatus.NOT_FOUND)
     }
 }
