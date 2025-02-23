@@ -3,6 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagg
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category-dto';
 import { Category } from './categories.model';
+import { IdGuard } from 'src/auth/auth.guard';
 
 @ApiTags('Категории')
 @Controller('categories')
@@ -11,6 +12,7 @@ export class CategoriesController {
 
   @ApiOperation({ summary: 'Создание категории' })
   @ApiResponse({ status: 200, type: Category })
+  @UseGuards(IdGuard)
   @ApiBearerAuth()
   @Post()
   async createCategory(@Body() createCategoryDto: CreateCategoryDto, @Request() req) {
