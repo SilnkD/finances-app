@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
-import { User } from './users/users.model';
+import { User } from './database/models/users.model';
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
-import { Category } from './categories/categories.model';
+import { Category } from './database/models/categories.model';
 
 @Module({
   imports: [

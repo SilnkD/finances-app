@@ -4,8 +4,8 @@ import { CreateUserDto } from 'src/users/dto/create-user-dto';
 import { AuthService } from './auth.service';
 import { TokenResponseDto } from './dto/token-responce-dto';
 import { LoginDto } from './dto/login-dto';
-import { User } from 'src/users/users.model';
-import { IdGuard } from './auth.guard';
+import { User } from 'src/database/models/users.model';
+import { IdGuard } from '../common/guards/auth.guard';
 
 @ApiTags('Авторизация')
 @Controller('auth')

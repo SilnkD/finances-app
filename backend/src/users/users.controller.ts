@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { User } from './users.model';
-import { RolesGuard } from './roles.guard';
+import { User } from '../database/models/users.model';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/roles.enum';
 import { AssignRoleDto } from './dto/assign-role-dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @ApiTags('Пользователи')
 @Controller('users')

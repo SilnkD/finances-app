@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CategoriesController } from './categories.controller';
 import { CategoriesService } from './categories.service';
-import { Category } from './categories.model';
+import { Category } from '../database/models/categories.model';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { User } from 'src/users/users.model';
+import { User } from 'src/database/models/users.model';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
@@ -11,7 +11,7 @@ import { AuthModule } from 'src/auth/auth.module';
   providers: [CategoriesService],
   imports: [
     SequelizeModule.forFeature([Category, User]),
-    AuthModule
+    forwardRef(()=>AuthModule),
   ],
 })
 export class CategoriesModule {}
