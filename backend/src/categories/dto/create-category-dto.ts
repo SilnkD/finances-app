@@ -20,8 +20,4 @@ export class CreateCategoryDto {
     @ApiProperty({ example: '0', description: 'Процент трат этой категории по умолчанию 0%' })
     @IsNumberString({}, { message: 'Процент должен быть числом' })
     readonly default_percentage: number;
-
-    @ApiProperty({ example: '1', description: 'Создатель категории' })
-    @IsNumberString({}, { message: 'Идентификатор пользователя должен быть числом' })
-    readonly user_id: number;
 }

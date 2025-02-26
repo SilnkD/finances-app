@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Category } from '../database/models/categories.model';
 import { CreateCategoryDto } from './dto/create-category-dto';
@@ -19,6 +19,29 @@ export class CategoriesService {
         if (isAdmin) {
             return this.categRepository.findAll(); // Администратор имеет доступ ко всем категориям
         }
-        return this.categRepository.findAll({ where: { user_id: [userId, 2] } }); // Пользователь имеет доступ к своим категориям и категориям администратора
+        return this.categRepository.findAll({ where: { user_id: [userId, 2] } });
+    }
+
+    async deleteCategory(userId: number, isAdmin: boolean, id: number) {
+        let categoryDeleted;
+        if (isAdmin) {
+            categoryDeleted = await this.categRepository.destroy({ where: { id } });
+        } else {
+            const category = await this.categRepository.findOne({ where: { id } });
+            if (!category) {
+                throw new HttpException("Категория не найдена", HttpStatus.NOT_FOUND);
+            }
+            if (category.user_id === userId) {
+                categoryDeleted = await this.categRepository.destroy({ where: { id } });
+            } else {
+                throw new HttpException("Вы не можете удалить чужую категорию", HttpStatus.FORBIDDEN);
+            }
+        }
+
+        if (categoryDeleted === 1) {
+            return `Категория с id ${id} удалена.`;
+        } else {
+            throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
+        }
     }
 }

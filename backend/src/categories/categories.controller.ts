@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, Request, Get } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Request, Get, Delete, Param } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category-dto';
@@ -27,8 +27,19 @@ export class CategoriesController {
   @ApiBearerAuth()
   @Get()
   async getCategories(@Request() req) {
-    const userId = req.user.id;  // Получение userId из JWT токена
+    const userId = req.user.id;
     const userRole = req.user.role;
     return this.categService.findAllCategoriesByUser(userId, userRole=="ADMIN");
+  }
+  
+  @ApiOperation({ summary: 'Удаление категории' })
+  @ApiResponse({ status: 200, type: Number })
+  @UseGuards(IdGuard)
+  @ApiBearerAuth()
+  @Delete('/delete/:id')
+  async deleteCategories(@Request() req, @Param('id') category_id: string) {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    return this.categService.deleteCategory(userId, userRole=="ADMIN", Number(category_id));
   }
 }

@@ -51,7 +51,7 @@ export class UsersService {
         const user = await this.userRepository.destroy({where:{id}});
         if (user>0)
             return `Пользователь с id ${id} удален.`;
-        else return new HttpException('Невалидный токен', HttpStatus.NOT_FOUND)
+        else return new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
     }
 
     async updateUser(username: string, password: string, id: number) {
