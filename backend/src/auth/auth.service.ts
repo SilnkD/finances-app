@@ -30,21 +30,24 @@ export class AuthService {
             throw new HttpException('Пользователь с таким email уже зарегистрирован', HttpStatus.BAD_REQUEST);
         }
         const hashPassword = await bcrypt.hash(registerDto.password, 5);
-        const user = await this.userService.createUser({...registerDto, password:hashPassword}) // dto с измененным паролем
+        const user = await this.userService.createUser({...registerDto, password: hashPassword}); // dto с измененным паролем
         return this.generateToken(user);
     }
 
     
     async updateUser(dto: UpdateUserDto, id: number) {
-        const hashPassword = await bcrypt.hash(dto.password, 5);
-        const username = dto.username;
-        await this.userService.updateUser(username, hashPassword, id );
         const user = await this.userService.getUserById(id);
-        return user;
+        if (!user) {
+            throw new HttpException('Пользователь не найден', HttpStatus.NOT_FOUND);
+        }
+        const hashPassword = await bcrypt.hash(dto.password, 5);
+        const updatedData = { ...dto, password: hashPassword };
+        await this.userService.updateUser(updatedData.username, updatedData.password, id);
+        return this.userService.getUserById(id);
     }
     
-    generateToken (user: User) {
-        const payload = {id: user.id, email: user.email, role: user.role};
+    generateToken(user: User) {
+        const payload = { id: user.id, email: user.email, role: user.role };
         return {
             token: this.jwtService.sign(payload)
         };

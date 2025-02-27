@@ -14,7 +14,8 @@ export class UsersController {
     constructor(private usersService: UsersService) {}
 
     @ApiOperation({summary: 'ADMIN/Назначение роли'})
-    @ApiResponse({status: 200, type: User})
+    @ApiResponse({ status: 200, description: 'Роль успешно назначена', type: User })
+    @ApiResponse({ status: 404, description: 'Пользователь не найден' })
     @ApiBearerAuth()
     @Roles(Role.Admin)
     @UseGuards(RolesGuard)
@@ -35,7 +36,8 @@ export class UsersController {
     }
 
     @ApiOperation({ summary: 'ADMIN/Удаление пользователя' })
-    @ApiResponse({ status: 200, type: Number })
+    @ApiResponse({ status: 200, description: 'Пользователь успешно удален'})
+    @ApiResponse({ status: 404, description: 'Пользователь не найден' })
     @ApiBearerAuth()
     @ApiParam({ name: 'id', description: 'ID пользователя', type: Number, example: 1 })
     @Roles(Role.Admin)

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, Request, Get, Delete, Param } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Request, Get, Delete, Param, Put } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category-dto';
@@ -11,7 +11,10 @@ export class CategoriesController {
   constructor(private readonly categService: CategoriesService) {}
 
   @ApiOperation({ summary: 'Создание категории' })
-  @ApiResponse({ status: 200, type: Category })
+  @ApiResponse({ status: 200, description: 'Категория успешно создана', type: Category })
+  @ApiResponse({ status: 400, description: 'Некорректные данные' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 403, description: 'Доступ запрещен'})
   @UseGuards(IdGuard)
   @ApiBearerAuth()
   @Post()
@@ -22,7 +25,9 @@ export class CategoriesController {
   }
   
   @ApiOperation({ summary: 'Получение категорий' })
-  @ApiResponse({ status: 200, type: [Category] })
+  @ApiResponse({ status: 200, description: 'Категории успешно получены', type: [Category] })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 403, description: 'Доступ запрещен'})
   @UseGuards(IdGuard)
   @ApiBearerAuth()
   @Get()
@@ -33,7 +38,10 @@ export class CategoriesController {
   }
   
   @ApiOperation({ summary: 'Удаление категории' })
-  @ApiResponse({ status: 200, type: Number })
+  @ApiResponse({ status: 200, description: 'Категория успешно удалена' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 403, description: 'Вы не можете удалить чужую категорию' })
+  @ApiResponse({ status: 404, description: 'Категория не найдена' })
   @UseGuards(IdGuard)
   @ApiBearerAuth()
   @Delete('/delete/:id')
@@ -41,5 +49,20 @@ export class CategoriesController {
     const userId = req.user.id;
     const userRole = req.user.role;
     return this.categService.deleteCategory(userId, userRole=="ADMIN", Number(category_id));
+  }
+
+  
+  @ApiOperation({ summary: 'Обновление категории' })
+  @ApiResponse({ status: 200, description: 'Категория успешно обновлена', type: Category })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 403, description: 'Вы не можете изменить чужую категорию' })
+  @ApiResponse({ status: 404, description: 'Категория не найдена' })
+  @UseGuards(IdGuard)
+  @ApiBearerAuth()
+  @Put('/:id')
+  async updateCategory(@Body() updateCategoryDto: CreateCategoryDto, @Request() req, @Param('id') category_id: string) {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+      return this.categService.updateCategory(Number(category_id), updateCategoryDto, userId, userRole);
   }
 }

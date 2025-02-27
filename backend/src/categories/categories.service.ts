@@ -24,18 +24,10 @@ export class CategoriesService {
 
     async deleteCategory(userId: number, isAdmin: boolean, id: number) {
         let categoryDeleted;
-        if (isAdmin) {
+        if (isAdmin || await this.checkUser(userId, id)) {
             categoryDeleted = await this.categRepository.destroy({ where: { id } });
         } else {
-            const category = await this.categRepository.findOne({ where: { id } });
-            if (!category) {
-                throw new HttpException("Категория не найдена", HttpStatus.NOT_FOUND);
-            }
-            if (category.user_id === userId) {
-                categoryDeleted = await this.categRepository.destroy({ where: { id } });
-            } else {
-                throw new HttpException("Вы не можете удалить чужую категорию", HttpStatus.FORBIDDEN);
-            }
+            throw new HttpException("Вы не можете удалить чужую категорию", HttpStatus.FORBIDDEN);
         }
 
         if (categoryDeleted === 1) {
@@ -43,5 +35,23 @@ export class CategoriesService {
         } else {
             throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
         }
+    }
+
+    async updateCategory (id: number, dto: CreateCategoryDto, user_id: number, isAdmin:boolean) {
+        if ((isAdmin && id == 2) || await this.checkUser(user_id, id)) {
+            await this.categRepository.update(dto, {where: {id}});
+            return this.categRepository.findOne({where: {id}});
+        } else {
+            throw new HttpException("Вы не можете изменить чужую категорию", HttpStatus.FORBIDDEN);
+        }
+    }
+    
+    async checkUser (user_id: number, id: number) {
+        const category = await this.categRepository.findOne({ where: { id } });
+        if (!category) {
+            throw new HttpException("Категория не найдена", HttpStatus.NOT_FOUND);
+        } 
+        if (user_id == category.user_id) return true;
+        else return false;
     }
 }
