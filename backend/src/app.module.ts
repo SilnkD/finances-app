@@ -6,6 +6,7 @@ import { User } from './database/models/users.model';
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
 import { Category } from './database/models/categories.model';
+import { GoalsModule } from './goals/goals.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { Category } from './database/models/categories.model';
     UsersModule,
     AuthModule,
     CategoriesModule,
+    GoalsModule,
   ],
   controllers: [],
   providers: [],

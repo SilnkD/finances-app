@@ -9,7 +9,7 @@ export class CategoriesService {
     constructor(@InjectModel(Category) private categRepository: typeof Category) {}
 
     async createCategory(dto: CreateCategoryDto, userId: number, isAdmin:boolean) {
-        if (isAdmin) userId = 2; //потом сделать миграции для бд
+        if (isAdmin) userId = 1; //потом сделать миграции для бд
         const category = await this.categRepository.create({ ...dto, user_id: +userId, expense_type: dto.expense_type as ExpenseType });
         await category.save();
         return category;
@@ -19,7 +19,7 @@ export class CategoriesService {
         if (isAdmin) {
             return this.categRepository.findAll(); // Администратор имеет доступ ко всем категориям
         }
-        return this.categRepository.findAll({ where: { user_id: [userId, 2] } });
+        return this.categRepository.findAll({ where: { user_id: [userId, 1] } });
     }
 
     async deleteCategory(userId: number, isAdmin: boolean, id: number) {
@@ -38,7 +38,7 @@ export class CategoriesService {
     }
 
     async updateCategory (id: number, dto: CreateCategoryDto, user_id: number, isAdmin:boolean) {
-        if ((isAdmin && id == 2) || await this.checkUser(user_id, id)) {
+        if ((isAdmin && id == 1) || await this.checkUser(user_id, id)) {
             await this.categRepository.update(dto, {where: {id}});
             return this.categRepository.findOne({where: {id}});
         } else {

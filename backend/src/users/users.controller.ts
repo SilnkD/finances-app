@@ -15,6 +15,7 @@ export class UsersController {
 
     @ApiOperation({summary: 'ADMIN/Назначение роли'})
     @ApiResponse({ status: 200, description: 'Роль успешно назначена', type: User })
+    @ApiResponse({ status: 403, description: 'Доступ только для администратора' })
     @ApiResponse({ status: 404, description: 'Пользователь не найден' })
     @ApiBearerAuth()
     @Roles(Role.Admin)
@@ -26,6 +27,7 @@ export class UsersController {
 
     @ApiOperation({summary: 'ADMIN/Получение всех пользователей'})
     @ApiResponse({status: 200, type: [User]})
+    @ApiResponse({ status: 403, description: 'Доступ только для администратора' })
     @ApiBearerAuth()
     @Roles(Role.Admin)
     @UseGuards(RolesGuard)
@@ -37,6 +39,7 @@ export class UsersController {
 
     @ApiOperation({ summary: 'ADMIN/Удаление пользователя' })
     @ApiResponse({ status: 200, description: 'Пользователь успешно удален'})
+    @ApiResponse({ status: 403, description: 'Доступ только для администратора' })
     @ApiResponse({ status: 404, description: 'Пользователь не найден' })
     @ApiBearerAuth()
     @ApiParam({ name: 'id', description: 'ID пользователя', type: Number, example: 1 })

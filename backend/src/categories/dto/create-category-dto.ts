@@ -1,9 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsString, IsUrl, Length, IsNumberString } from "class-validator";
+import { IsEnum, IsString, IsUrl, Length, IsNumber } from "class-validator";
 import { ExpenseType } from "src/common/enums/expense-type.enum";
 
 export class CreateCategoryDto {
-    @ApiProperty({ example: 'category name example', description: 'Название категории' })
+    @ApiProperty({ example: 'Название категории', description: 'Название категории' })
     @IsString({ message: 'Название должно быть строкой' })
     @Length(2, 128, { message: 'Категория должна содержать от 2 до 128 символов' })
     readonly name: string;
@@ -18,6 +18,6 @@ export class CreateCategoryDto {
     readonly image_url: string;
 
     @ApiProperty({ example: '0', description: 'Процент трат этой категории по умолчанию 0%' })
-    @IsNumberString({}, { message: 'Процент должен быть числом' })
+    @IsNumber({}, { message: 'Процент должен быть числом' })
     readonly default_percentage: number;
 }
