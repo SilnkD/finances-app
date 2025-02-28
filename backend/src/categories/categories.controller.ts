@@ -2,8 +2,9 @@ import { Body, Controller, Post, UseGuards, Request, Get, Delete, Param, Put } f
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category-dto';
-import { Category } from '../database/models/categories.model';
 import { IdGuard } from 'src/common/guards/auth.guard';
+import { AssignCategoryDto } from './dto/assign-category-dto';
+import { GetCategoryDto } from './dto/get-category-dto';
 
 @ApiTags('Категории')
 @Controller('categories')
@@ -11,7 +12,7 @@ export class CategoriesController {
   constructor(private readonly categService: CategoriesService) {}
 
   @ApiOperation({ summary: 'Создание категории' })
-  @ApiResponse({ status: 200, description: 'Категория успешно создана', type: Category })
+  @ApiResponse({ status: 200, description: 'Категория успешно создана', type: GetCategoryDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещен'})
@@ -24,8 +25,22 @@ export class CategoriesController {
     return this.categService.createCategory(createCategoryDto, userId, userRole=="ADMIN");
   }
   
+  @ApiOperation({ summary: 'Присвоение категории пользователю' })
+  @ApiResponse({ status: 200, description: 'Категория успешно добавлена', type: GetCategoryDto })
+  @ApiResponse({ status: 400, description: 'Некорректные данные или категория уже присвоена пользователю' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 403, description: 'Доступ запрещен' })
+  @ApiResponse({ status: 404, description: 'Категория не найдена' })
+  @UseGuards(IdGuard)
+  @ApiBearerAuth()
+  @Post('assign')
+  async assignCategory(@Body() assignCategoryDto: AssignCategoryDto, @Request() req) {
+    const userId = req.user.id;
+    return this.categService.assignCategory(assignCategoryDto.category_id, userId, assignCategoryDto.percentage);
+  }
+  
   @ApiOperation({ summary: 'Получение категорий' })
-  @ApiResponse({ status: 200, description: 'Категории успешно получены', type: [Category] })
+  @ApiResponse({ status: 200, description: 'Категории успешно получены', type: [GetCategoryDto] })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещен'})
   @UseGuards(IdGuard)
@@ -53,7 +68,7 @@ export class CategoriesController {
 
   
   @ApiOperation({ summary: 'Обновление категории' })
-  @ApiResponse({ status: 200, description: 'Категория успешно обновлена', type: Category })
+  @ApiResponse({ status: 200, description: 'Категория успешно обновлена', type: GetCategoryDto })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 403, description: 'Вы не можете изменить чужую категорию' })
   @ApiResponse({ status: 404, description: 'Категория не найдена' })

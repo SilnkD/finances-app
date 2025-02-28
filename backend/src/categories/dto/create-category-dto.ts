@@ -19,5 +19,5 @@ export class CreateCategoryDto {
 
     @ApiProperty({ example: '0', description: 'Процент трат этой категории по умолчанию 0%' })
     @IsNumber({}, { message: 'Процент должен быть числом' })
-    readonly default_percentage: number;
+    readonly percentage: number;
 }

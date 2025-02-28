@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
 import { Category } from './database/models/categories.model';
 import { GoalsModule } from './goals/goals.module';
+import { UserCategory } from './database/models/user-categories.model';
+import { Goal } from './database/models/goals.model';
 
 @Module({
   imports: [
@@ -21,7 +23,7 @@ import { GoalsModule } from './goals/goals.module';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [User, Category],
+      models: [User, Category, UserCategory, Goal],
       autoLoadModels: true,
     }),
     UsersModule,
