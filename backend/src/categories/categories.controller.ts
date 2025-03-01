@@ -5,6 +5,7 @@ import { CreateCategoryDto } from './dto/create-category-dto';
 import { IdGuard } from 'src/common/guards/auth.guard';
 import { AssignCategoryDto } from './dto/assign-category-dto';
 import { GetCategoryDto } from './dto/get-category-dto';
+import { Role } from 'src/common/enums/roles.enum';
 
 @ApiTags('Категории')
 @Controller('categories')
@@ -22,7 +23,7 @@ export class CategoriesController {
   async createCategory(@Body() createCategoryDto: CreateCategoryDto, @Request() req) {
     const userId = req.user.id;  // Получение userId из JWT токена
     const userRole = req.user.role;
-    return this.categService.createCategory(createCategoryDto, userId, userRole=="ADMIN");
+    return this.categService.createCategory(createCategoryDto, userId, userRole==Role.Admin);
   }
   
   @ApiOperation({ summary: 'Присвоение категории пользователю' })
@@ -49,7 +50,7 @@ export class CategoriesController {
   async getCategories(@Request() req) {
     const userId = req.user.id;
     const userRole = req.user.role;
-    return this.categService.findAllCategoriesByUser(userId, userRole=="ADMIN");
+    return this.categService.findAllCategoriesByUser(userId, userRole==Role.Admin);
   }
   
   @ApiOperation({ summary: 'Удаление категории' })
@@ -63,7 +64,7 @@ export class CategoriesController {
   async deleteCategories(@Request() req, @Param('id') category_id: string) {
     const userId = req.user.id;
     const userRole = req.user.role;
-    return this.categService.deleteCategory(userId, userRole=="ADMIN", Number(category_id));
+    return this.categService.deleteCategory(userId, userRole==Role.Admin, Number(category_id));
   }
 
   
