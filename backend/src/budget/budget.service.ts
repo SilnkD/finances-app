@@ -17,9 +17,9 @@ export class BudgetService {
     async displayBudget(budget) {
         const finalUserCategory = await this.userCategoryRepository.findByPk(budget.owner_id);
         const categ = await this.categoryRepository.findByPk(finalUserCategory?.category_id);
-        if (finalUserCategory) return {
+        if (finalUserCategory && categ) return {
             id: finalUserCategory.budget.id,
-            category_name: categ?.name,
+            category_name: categ.name,
             amount: finalUserCategory.budget.amount
         }; 
         else {
@@ -27,7 +27,7 @@ export class BudgetService {
         }
     }
 
-    async createBudget(dto: CreateBudgetDto, user_id) {
+    async createBudget(dto: CreateBudgetDto, user_id): Promise<GetBudgetDto> {
         const category = await this.categoryRepository.findOne({ where: { id: dto.category_id } });
         const userCategory = await this.userCategoryRepository.findOne({where: {user_id, category_id: dto.category_id}});
         if (!category) {
@@ -54,15 +54,21 @@ export class BudgetService {
         return displayBudgets;
     }
 
-    async updateBudgetAmount(dto: CreateBudgetDto, user_id) {
-        const category = await this.categoryRepository.findOne({ where: { id: dto.category_id } });
-        const userCategory = await this.userCategoryRepository.findOne({where: {user_id, category_id:dto.category_id}});
-        if (!category) {
-            throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
-        } else if (!userCategory) {
-            throw new HttpException('Пользователь не указал процент трат категории', HttpStatus.NOT_FOUND);
+    async updateBudgetAmount(budget_id, amount): Promise<GetBudgetDto> {
+        const budget = await this.budgetRepository.update({amount}, {where:{ id: budget_id }});
+        return this.displayBudget(budget);
+    }
+
+    async getBudget(user_id: number, category_id: number): Promise<GetBudgetDto> {
+        const userCategory = await this.userCategoryRepository.findOne({ where: { user_id, category_id } });
+        if (!userCategory) {
+            throw new HttpException('Категория пользователя не найдена', HttpStatus.NOT_FOUND);
         }
-        const budget = await this.budgetRepository.update({amount: dto.amount}, {where:{ owner_id: userCategory.id }});
+        const budget = await this.budgetRepository.findOne({ where: { owner_id: userCategory.id } });
+
+        if (!budget) {
+            throw new HttpException('Бюджет не найден', HttpStatus.NOT_FOUND);
+        }
         return this.displayBudget(budget);
     }
 }

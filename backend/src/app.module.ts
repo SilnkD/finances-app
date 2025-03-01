@@ -12,6 +12,7 @@ import { Goal } from './database/models/goals.model';
 import { BudgetModule } from './budget/budget.module';
 import { Budget } from './database/models/budget.model';
 import { Transaction } from './database/models/transaction.model';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { Transaction } from './database/models/transaction.model';
     CategoriesModule,
     GoalsModule,
     BudgetModule,
+    TransactionsModule,
   ],
   controllers: [],
   providers: [],

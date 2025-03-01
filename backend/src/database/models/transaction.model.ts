@@ -32,6 +32,6 @@ export class Transaction extends Model<Transaction, TransactionCreationAttrs> {
     date: string;
 
     @ApiProperty({ example: 'Продукты', description: 'Название транзакции' })
-    @Column({ type: DataType.STRING, allowNull: false })
+    @Column({ type: DataType.STRING, allowNull: true })
     description: string;
 }

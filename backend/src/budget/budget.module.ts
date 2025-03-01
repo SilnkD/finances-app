@@ -14,6 +14,7 @@ import { UserCategory } from 'src/database/models/user-categories.model';
     AuthModule,
   ],
   providers: [BudgetService],
-  controllers: [BudgetController]
+  controllers: [BudgetController],
+  exports:[BudgetService]
 })
 export class BudgetModule {}
