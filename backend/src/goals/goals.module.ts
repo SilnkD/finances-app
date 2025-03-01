@@ -6,10 +6,11 @@ import { Goal } from '../database/models/goals.model';
 import { User } from 'src/database/models/users.model';
 import { Category } from 'src/database/models/categories.model';
 import { AuthModule } from 'src/auth/auth.module';
+import { Budget } from 'src/database/models/budget.model';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([Goal, User, Category]),
+    SequelizeModule.forFeature([Goal, User, Category, Budget]),
     AuthModule,
   ],
   controllers: [GoalsController],
