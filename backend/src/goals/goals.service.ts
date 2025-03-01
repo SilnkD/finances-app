@@ -4,18 +4,20 @@ import { Goal } from '../database/models/goals.model';
 import { CreateGoalDto } from './dto/create-goal-dto';
 import { Category } from '../database/models/categories.model';
 import { GetGoalDto } from './dto/get-goal-dto';
+import { Budget } from 'src/database/models/budget.model';
 
 @Injectable()
 export class GoalsService {
     constructor(
         @InjectModel(Goal) private goalRepository: typeof Goal,
+        @InjectModel(Budget) private budgetRepository: typeof Budget,
         @InjectModel(Category) private categoryRepository: typeof Category,
     ) {}
 
     async createGoal(dto: CreateGoalDto, userId: number) {
-        const category = await this.categoryRepository.findOne({ where: { id: dto.category_id } });
-        if (!category) {
-            throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
+        const budget = await this.budgetRepository.findOne({ where: { id: dto.budget_id } });
+        if (!budget) {
+            throw new HttpException('Счет не найден', HttpStatus.NOT_FOUND);
         }
 
         const goal = await this.goalRepository.create({ ...dto, user_id: userId });
@@ -23,17 +25,25 @@ export class GoalsService {
         return goal;
     }
 
-    async displayGoal (goals) {
-        return goals.map(goal => ({
-            id: goal.id,
-            category_name: goal.category.name,
-            user_id: goal.user_id,
-            name: goal.name,
-            target_amount: goal.target_amount,
-            current_amount: goal.current_amount,
-            start_date: goal.start_date,
-            end_date: goal.end_date
-        }));
+    async displayGoal(goals) {
+        const displayedGoals: GetGoalDto[] = [];
+    
+        for (const goal of goals) {
+            const category = await this.categoryRepository.findByPk(goals.budget.usercategory.category_id);
+    
+            if (category) displayedGoals.push({
+                id: goal.id,
+                category_name: category.name,
+                user_id: goal.user_id,
+                name: goal.name,
+                target_amount: goal.target_amount,
+                current_amount: goal.current_amount,
+                start_date: goal.start_date,
+                end_date: goal.end_date
+            });
+        }
+    
+        return displayedGoals;
     }
 
     async getGoals(): Promise<GetGoalDto[]> {
@@ -70,8 +80,8 @@ export class GoalsService {
             throw new HttpException('Вы не можете изменить чужую цель', HttpStatus.FORBIDDEN);
         }
 
-        const category = await this.categoryRepository.findOne({ where: { id: dto.category_id } });
-        if (!category) {
+        const budget = await this.budgetRepository.findOne({ where: { id: dto.budget_id } });
+        if (!budget) {
             throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
         }
 
@@ -79,13 +89,14 @@ export class GoalsService {
         const updatedGoal = await this.goalRepository.findOne({ where: { id }, include: [Category] });
 
         if (updatedGoal !== null) {
-            return {
+            const category = await this.categoryRepository.findByPk(updatedGoal.budget.usercategory.category_id);
+            if (category) return {
                 id: updatedGoal.id,
-                category_name: updatedGoal.category.name,
+                category_name: category.name,
                 user_id: updatedGoal.user_id,
                 name: updatedGoal.name,
                 target_amount: updatedGoal.target_amount,
-                current_amount: updatedGoal.current_amount,
+                current_amount: updatedGoal.budget.amount,
                 start_date: updatedGoal.start_date,
                 end_date: updatedGoal.end_date
             };

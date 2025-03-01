@@ -1,5 +1,5 @@
 export enum ExpenseType {
-    Goal = 'GOAL',
+    Savings = 'SAVINGS',
     Expenses = 'EXPENSE',
     Income = 'INCOME',
   }  

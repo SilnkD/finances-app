@@ -9,6 +9,9 @@ import { Category } from './database/models/categories.model';
 import { GoalsModule } from './goals/goals.module';
 import { UserCategory } from './database/models/user-categories.model';
 import { Goal } from './database/models/goals.model';
+import { BudgetModule } from './budget/budget.module';
+import { Budget } from './database/models/budget.model';
+import { Transaction } from './database/models/transaction.model';
 
 @Module({
   imports: [
@@ -23,13 +26,14 @@ import { Goal } from './database/models/goals.model';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [User, Category, UserCategory, Goal],
+      models: [User, Category, UserCategory, Goal, Budget, Transaction],
       autoLoadModels: true,
     }),
     UsersModule,
     AuthModule,
     CategoriesModule,
     GoalsModule,
+    BudgetModule,
   ],
   controllers: [],
   providers: [],

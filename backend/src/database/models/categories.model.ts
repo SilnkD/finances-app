@@ -3,7 +3,6 @@ import { Column, DataType, Model, Table, BelongsToMany, HasMany } from "sequeliz
 import { ExpenseType } from "src/common/enums/expense-type.enum";
 import { User } from "./users.model";
 import { UserCategory } from "./user-categories.model";
-import { Goal } from "./goals.model";
 import { AccessType } from "src/common/enums/access-type.enum";
 
 interface CategoryCreationAttrs {
@@ -36,7 +35,4 @@ export class Category extends Model<Category, CategoryCreationAttrs> {
 
     @BelongsToMany(() => User, () => UserCategory)
     users: User[];
-
-    @HasMany(()=>Goal)
-    goals: Goal[];
 }

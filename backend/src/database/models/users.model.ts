@@ -1,8 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { BelongsToMany, Column, DataType, Model, Table } from "sequelize-typescript";
+import { BelongsToMany, Column, DataType, HasMany, Model, Table } from "sequelize-typescript";
 import { Role } from "src/common/enums/roles.enum";
 import { Category } from "src/database/models/categories.model";
 import { UserCategory } from "./user-categories.model";
+import { Goal } from "./goals.model";
 
 interface UserCreationAttrs {
     username: string;
@@ -34,4 +35,7 @@ export class User extends Model <User, UserCreationAttrs> {
 
     @BelongsToMany(() => Category, () => UserCategory)
     categories: Category[];
+    
+    @HasMany(()=>Goal)
+    goals: Goal[];
 }

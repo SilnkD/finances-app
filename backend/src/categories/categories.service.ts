@@ -14,24 +14,31 @@ export class CategoriesService {
         @InjectModel(UserCategory) private userCategoryRepository: typeof UserCategory,
     ) {}
 
-    async transformCategoryData(category) {
+    async displayCategoryData(category, user_id? , onlyUserRecords: boolean = false) {
         return {
             id: category.id,
             name: category.name,
             expense_type: category.expense_type,
             access_type: category.access_type,
             image_url: category.image_url,
-            users: category.users.map(user => ({
-                user_id: user.UserCategory.user_id,
-                category_id: user.UserCategory.category_id,
-                percentage: user.UserCategory.percentage,
-            }))
+            users: onlyUserRecords && user_id
+                ? category.users
+                    .filter(user => user.UserCategory.user_id === user_id)
+                    .map(user => ({
+                        user_id: user.UserCategory.user_id,
+                        category_id: user.UserCategory.category_id,
+                        percentage: user.UserCategory.percentage,
+                    }))
+                : category.users.map(user => ({
+                    user_id: user.UserCategory.user_id,
+                    category_id: user.UserCategory.category_id,
+                    percentage: user.UserCategory.percentage,
+                }))
         };
-    }
+    }    
 
     async createCategory(dto: CreateCategoryDto, user_id: number, isAdmin: boolean) {
         user_id = isAdmin ? 1 : user_id; // потом сделать миграции для бд
-        console.log(user_id);
 
         const category = await this.categRepository.create({
             name: dto.name,
@@ -45,11 +52,11 @@ export class CategoriesService {
                 category_id: category.id,
                 percentage: dto.percentage
             });
-            return this.transformCategoryData(await this.categRepository.findByPk(category.id, {include: {all:true}}));
+            return this.displayCategoryData(await this.categRepository.findByPk(category.id, {include: {all:true}}));
         } else {
             category.access_type = AccessType.Public;
             await category.save();
-            return this.transformCategoryData(await this.categRepository.findByPk(category.id, {include: {all:true}}));
+            return this.displayCategoryData(await this.categRepository.findByPk(category.id, {include: {all:true}}));
         }
     }
 
@@ -77,27 +84,27 @@ export class CategoriesService {
             percentage: percentage
         });
 
-        return this.transformCategoryData(await this.categRepository.findByPk(category_id, { include: { all: true } }));
+        return this.displayCategoryData(await this.categRepository.findByPk(category_id, { include: { all: true } }));
     }
 
     async findAllCategoriesByUser(user_id: number, isAdmin: boolean) {
         if (isAdmin) {
             const categories = await this.categRepository.findAll({ include: { all: true } }); // Администратор имеет доступ ко всем категориям
-            return Promise.all(categories.map(category => this.transformCategoryData(category)));
+            return Promise.all(categories.map(category => this.displayCategoryData(category)));
+        } else {    
+            const userCategories = await this.userCategoryRepository.findAll({ where: { user_id } });
+            const categoryIds = userCategories.map(userCategory => userCategory.category_id);
+            const categories = await this.categRepository.findAll({
+                where: {
+                    [Op.or]: [
+                        { id: categoryIds },
+                        { access_type: AccessType.Public }
+                    ]
+                },
+                include: { all: true }
+            });
+            return Promise.all(categories.map(category => this.displayCategoryData(category, user_id, true)));
         }
-        const userCategories = await this.userCategoryRepository.findAll({ where: { user_id } });
-        const categoryIds = userCategories.map(userCategory => userCategory.category_id);
-        const categories = await this.categRepository.findAll({
-            where: {
-                [Op.or]: [
-                    { id: categoryIds },
-                    { access_type: AccessType.Public }
-                ]
-            },
-            include: { all: true }
-        });
-        console.log(categories);
-        return Promise.all(categories.map(category => this.transformCategoryData(category)));
     }    
 
     async deleteCategory(user_id: number, isAdmin: boolean, id: number) {
@@ -124,6 +131,10 @@ export class CategoriesService {
     
         if (isAdmin || category?.access_type == AccessType.Private) {
             categoryUpdated = await this.categRepository.update(dto, { where: { id } });
+            userCategoryUpdated = await this.userCategoryRepository.update(
+                { percentage: dto.percentage }, 
+                { where: { user_id, category_id: id } }
+            );
         } else {
             userCategoryUpdated = await this.userCategoryRepository.update(
                 { percentage: dto.percentage }, 
@@ -132,7 +143,7 @@ export class CategoriesService {
         }
     
         if (categoryUpdated) {
-            return await this.categRepository.findOne({ where: { id } });
+            return this.displayCategoryData(await this.categRepository.findByPk(id, { include: { all: true } }));
         } else if (userCategoryUpdated) {
             return `Категория пользователя с id ${id} обновлена.`;
         } else {

@@ -1,16 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Column, DataType, Model, Table, ForeignKey, BelongsTo } from "sequelize-typescript";
 import { User } from "./users.model";
-import { Category } from "./categories.model";
+import { Budget } from "./budget.model";
 
 interface GoalCreationAttrs {
     name: string;
     target_amount: number;
-    current_amount: number;
     start_date: string;
     end_date: string;
+    budget_id: number;
     user_id: number;
-    category_id: number;
 }
 
 @Table({ tableName: 'goals', timestamps: false })
@@ -27,25 +26,21 @@ export class Goal extends Model<Goal, GoalCreationAttrs> {
     @BelongsTo(() => User)
     user: User;
 
-    @ApiProperty({ example: '1', description: 'Категория цели' })
-    @ForeignKey(() => Category)
+    @ApiProperty({ example: '1', description: 'Счет для цели' })
+    @ForeignKey(() => Budget)
     @Column({ type: DataType.INTEGER, allowNull: false })
-    category_id: number;
+    budget_id: number;
 
-    @BelongsTo(() => Category)
-    category: Category;
+    @BelongsTo(() => Budget)
+    budget: Budget;
 
     @ApiProperty({ example: 'Поездка на море', description: 'Название цели' })
     @Column({ type: DataType.STRING, allowNull: false })
     name: string;
     
     @ApiProperty({ example: 1000, description: 'Размер финансовой цели (BYN)' })
-    @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+    @Column({ type: DataType.FLOAT, allowNull: false, defaultValue: 0 })
     target_amount: number;
-    
-    @ApiProperty({ example: 800, description: 'Текущие накопления (BYN)' })
-    @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-    current_amount: number;
 
     @ApiProperty({ example: new Date().toISOString(), description: 'Дата начала накоплений' })
     @Column({ type: DataType.DATE, allowNull: false, defaultValue: new Date() })
