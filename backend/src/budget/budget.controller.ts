@@ -5,13 +5,13 @@ import { CreateBudgetDto } from './dto/create-budget-dto';
 import { GetBudgetDto } from './dto/get-budget-dto';
 import { IdGuard } from 'src/common/guards/auth.guard';
 
-@ApiTags('Бюджеты')
+@ApiTags('Счета')
 @Controller('budgets')
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 
-  @ApiOperation({ summary: 'Создание бюджета' })
-  @ApiResponse({ status: 200, description: 'Бюджет успешно создан', type: GetBudgetDto })
+  @ApiOperation({ summary: 'Создание счета' })
+  @ApiResponse({ status: 200, description: 'Счет успешно создан', type: GetBudgetDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @UseGuards(IdGuard)
@@ -22,8 +22,8 @@ export class BudgetController {
     return this.budgetService.createBudget(createBudgetDto, userId);
   }
 
-  @ApiOperation({ summary: 'Получение бюджетов пользователя' })
-  @ApiResponse({ status: 200, description: 'Бюджеты пользователя успешно получены', type: [GetBudgetDto] })
+  @ApiOperation({ summary: 'Получение счетов пользователя' })
+  @ApiResponse({ status: 200, description: 'Счета пользователя успешно получены', type: [GetBudgetDto] })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @UseGuards(IdGuard)
   @ApiBearerAuth()
@@ -33,8 +33,8 @@ export class BudgetController {
     return this.budgetService.getUserBudgets(userId);
   }
 
-  @ApiOperation({ summary: 'Обновление суммы бюджета' })
-  @ApiResponse({ status: 200, description: 'Сумма бюджета успешно обновлена', type: GetBudgetDto })
+  @ApiOperation({ summary: 'Обновление суммы счета' })
+  @ApiResponse({ status: 200, description: 'Сумма счета успешно обновлена', type: GetBudgetDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 404, description: 'Категория не найдена' })
