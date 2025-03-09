@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Column, DataType, Model, Table, BelongsToMany, HasMany } from "sequelize-typescript";
+import { Column, DataType, Model, Table, BelongsToMany } from "sequelize-typescript";
 import { ExpenseType } from "src/common/enums/expense-type.enum";
 import { User } from "./users.model";
 import { UserCategory } from "./user-categories.model";
