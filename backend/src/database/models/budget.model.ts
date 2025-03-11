@@ -5,7 +5,6 @@ import { UserCategory } from "./user-categories.model";
 interface BudgetCreationAttrs {
     amount: number;
     user_id: number;
-    category_id: number;
 }
 
 @Table({ tableName: 'budgets', timestamps: false })
@@ -17,7 +16,7 @@ export class Budget extends Model<Budget, BudgetCreationAttrs> {
     @ApiProperty({ example: '1', description: 'Владелец счета' })
     @ForeignKey(() => UserCategory)
     @Column({ type: DataType.INTEGER, allowNull: false })
-    owner_id: number;
+    user_id: number;
 
     @BelongsTo(() => UserCategory)
     usercategory: UserCategory;

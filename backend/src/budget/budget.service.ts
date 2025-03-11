@@ -15,30 +15,40 @@ export class BudgetService {
     ) {}
 
     async displayBudget(budget) {
-        const finalUserCategory = await this.userCategoryRepository.findByPk(budget.owner_id);
+        const finalUserCategory = await this.userCategoryRepository.findOne({ where: { user_id: budget.user_id } });
         const categ = await this.categoryRepository.findByPk(finalUserCategory?.category_id);
-        if (finalUserCategory && categ) return {
-            id: finalUserCategory.budget.id,
-            category_name: categ.name,
-            amount: finalUserCategory.budget.amount
-        }; 
-        else {
-            throw new HttpException('Счет не найден', HttpStatus.NOT_FOUND);
-        }
-    }
-
-    async createBudget(dto: CreateBudgetDto, user_id): Promise<GetBudgetDto> {
-        const category = await this.categoryRepository.findOne({ where: { id: dto.category_id } });
-        const userCategory = await this.userCategoryRepository.findOne({where: {user_id, category_id: dto.category_id}});
-        if (!category) {
+        
+        if (finalUserCategory && categ) {
+            return {
+                id: budget.id,
+                category_name: categ.name,
+                amount: budget.amount
+            };
+        } else if (!categ) {
             throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
-        } else if (!userCategory) {
-            throw new HttpException('Пользователь не указал процент трат категории', HttpStatus.NOT_FOUND);
+        } else {
+            throw new HttpException('Категория пользователя не найдена', HttpStatus.NOT_FOUND);
         }
-        const budget = await this.budgetRepository.create({ ...dto, user_id: user_id });
-        await budget.save();
+    }    
+
+    async createBudget(dto: CreateBudgetDto, userId): Promise<GetBudgetDto> {
+        const category = await this.categoryRepository.findOne({ where: { id: dto.category_id } });
+        console.log('Category:', category);
+      
+        const userCategory = await this.userCategoryRepository.findOne({ where: { user_id: userId, category_id: dto.category_id } });
+        console.log('UserCategory:', userCategory);
+      
+        if (category==null) {
+          throw new HttpException('Категория не найдена', HttpStatus.NOT_FOUND);
+        } 
+        if (userCategory==null) {
+          throw new HttpException('Пользователь не указал процент трат категории', HttpStatus.NOT_FOUND);
+        }
+        let user_id = userCategory.id;
+        let amount = dto.amount
+        const budget = await this.budgetRepository.create({ user_id, amount });
         return this.displayBudget(budget);
-    }
+    }        
 
     async getUserBudgets(user_id) {
         const userCategories = await this.userCategoryRepository.findAll({where: {user_id}, include: {all: true}});
@@ -55,20 +65,24 @@ export class BudgetService {
     }
 
     async updateBudgetAmount(budget_id, amount): Promise<GetBudgetDto> {
-        const budget = await this.budgetRepository.update({amount}, {where:{ id: budget_id }});
-        return this.displayBudget(budget);
-    }
+        await this.budgetRepository.update({ amount }, { where: { id: budget_id } });
+        const updatedBudget = await this.budgetRepository.findOne({ where: { id: budget_id } });
+        return this.displayBudget(updatedBudget);
+    }    
 
     async getBudget(user_id: number, category_id: number): Promise<GetBudgetDto> {
         const userCategory = await this.userCategoryRepository.findOne({ where: { user_id, category_id } });
+    
         if (!userCategory) {
             throw new HttpException('Категория пользователя не найдена', HttpStatus.NOT_FOUND);
         }
-        const budget = await this.budgetRepository.findOne({ where: { owner_id: userCategory.id } });
-
+    
+        const budget = await this.budgetRepository.findOne({ where: { user_id } }); // Используем user_id для поиска бюджета
+    
         if (!budget) {
-            throw new HttpException('Бюджет не найден', HttpStatus.NOT_FOUND);
+            throw new HttpException('Обновленный счет не найден', HttpStatus.NOT_FOUND);
         }
+    
         return this.displayBudget(budget);
-    }
+    }    
 }

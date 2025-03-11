@@ -27,11 +27,12 @@ export class GoalsService {
 
     async displayGoal(goals) {
         const displayedGoals: GetGoalDto[] = [];
-    
         for (const goal of goals) {
-            const category = await this.categoryRepository.findByPk(goals.budget.usercategory.category_id);
-    
-            if (category) displayedGoals.push({
+          if (goal.budget && goal.budget.usercategory) {
+            const category = await this.categoryRepository.findByPk(goal.budget.usercategory.category_id);
+      
+            if (category) {
+              displayedGoals.push({
                 id: goal.id,
                 category_name: category.name,
                 user_id: goal.user_id,
@@ -39,12 +40,14 @@ export class GoalsService {
                 target_amount: goal.target_amount,
                 current_amount: goal.current_amount,
                 start_date: goal.start_date,
-                end_date: goal.end_date
-            });
+                end_date: goal.end_date,
+              });
+            }
+          }
         }
-    
+      
         return displayedGoals;
-    }
+      }      
 
     async getGoals(): Promise<GetGoalDto[]> {
         const goals = await this.goalRepository.findAll({ include: [Category] });
