@@ -22,15 +22,11 @@ describe('IdGuard', () => {
   });
 
   it('should allow access if no userId is defined in reflector', () => {
-    // Мокаем Reflector
     mockReflector.get = jest.fn().mockReturnValue(undefined);
-
-    // Мокаем JWT токен
     mockJwtService.verify = jest.fn().mockReturnValue({ id: 1 });
 
-    // Создаем ExecutionContext
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer valid-token' },
@@ -43,7 +39,7 @@ describe('IdGuard', () => {
 
   it('should deny access if no authorization header is present', () => {
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: {},
@@ -58,6 +54,7 @@ describe('IdGuard', () => {
 
   it('should throw UNAUTHORIZED error if token is not Bearer', () => {
     const context = {
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: {
@@ -78,7 +75,7 @@ describe('IdGuard', () => {
     });
 
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer invalid-token' },
@@ -92,15 +89,11 @@ describe('IdGuard', () => {
   });
 
   it('should allow access if userId matches token user id', () => {
-    // Мокаем Reflector
     mockReflector.get = jest.fn().mockReturnValue(1);
-
-    // Мокаем JWT токен
     mockJwtService.verify = jest.fn().mockReturnValue({ id: 1 });
 
-    // Создаем ExecutionContext
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer valid-token' },
@@ -112,15 +105,11 @@ describe('IdGuard', () => {
   });
 
   it('should deny access if userId does not match token user id', () => {
-    // Мокаем Reflector
     mockReflector.get = jest.fn().mockReturnValue(2);
-
-    // Мокаем JWT токен
     mockJwtService.verify = jest.fn().mockReturnValue({ id: 1 });
 
-    // Создаем ExecutionContext
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer valid-token' },

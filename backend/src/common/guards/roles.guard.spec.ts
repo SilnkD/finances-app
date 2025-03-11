@@ -26,15 +26,12 @@ describe('RolesGuard', () => {
   });
 
   it('should restrict access for non-admin users', () => {
-    // Мокаем роли
     mockReflector.get = jest.fn().mockReturnValue([Role.Admin]);
 
-    // Мокаем JWT с пользователем с ролью "User"
     mockJwtService.verify = jest.fn().mockReturnValue({ id: 1, role: Role.User });
 
-    // Создаем контекст
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer valid-token' },
@@ -48,15 +45,12 @@ describe('RolesGuard', () => {
   });
 
   it('should allow access for admin users', () => {
-    // Мокаем роли
     mockReflector.get = jest.fn().mockReturnValue([Role.Admin]);
 
-    // Мокаем JWT с пользователем с ролью "Admin"
     mockJwtService.verify = jest.fn().mockReturnValue({ id: 1, role: Role.Admin });
 
-    // Создаем контекст
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer valid-token' },
@@ -70,13 +64,12 @@ describe('RolesGuard', () => {
   it('should deny access if token is invalid', () => {
     mockReflector.get = jest.fn().mockReturnValue([Role.Admin]);
 
-    // Мокаем недействительный токен
     mockJwtService.verify = jest.fn().mockImplementation(() => {
       throw new Error('Invalid token');
     });
 
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer invalid-token' },
@@ -95,7 +88,7 @@ describe('RolesGuard', () => {
     mockJwtService.verify = jest.fn().mockReturnValue({ id: 1, role: Role.User });
 
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: { authorization: 'Bearer valid-token' },
@@ -106,10 +99,9 @@ describe('RolesGuard', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  
   it('should deny access if no authorization header is present', () => {
     const context = {
-      getHandler: jest.fn(),
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: {},
@@ -124,6 +116,7 @@ describe('RolesGuard', () => {
 
   it('should throw UNAUTHORIZED error if token is not Bearer', () => {
     const context = {
+      getHandler: jest.fn().mockReturnValue('test-handler'),
       switchToHttp: () => ({
         getRequest: () => ({
           headers: {
