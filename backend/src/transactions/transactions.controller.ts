@@ -18,7 +18,6 @@ export class TransactionsController {
   @ApiBearerAuth()
   @Post()
   async createTransaction(@Body() createTransactionDto: CreateTransactionDto, @Request() req) {
-    const userId = req.user.id;  // Получение userId из JWT токена
     return this.transactionsService.createTransaction(createTransactionDto);
   }
 
