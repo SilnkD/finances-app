@@ -63,8 +63,8 @@ describe('AuthService', () => {
             const result = await authService.login(loginDto);
         
             expect(result).toEqual({ token: 'token' });
-            expect(jwtService.sign).toHaveBeenLastCalledWith({ id: mockUser.id, username: loginDto.user, email: undefined, role: mockUser.role });
-        });  
+            expect(jwtService.sign).toHaveBeenLastCalledWith({ id: mockUser.id, email: mockUser.email, role: mockUser.role });
+        });        
 
         it('should throw an exception if credentials are invalid', async () => {
             const loginDto: LoginDto = { user: 'test@example.com', password: 'wrongpassword' };

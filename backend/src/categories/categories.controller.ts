@@ -13,7 +13,7 @@ export class CategoriesController {
   constructor(private readonly categService: CategoriesService) {}
 
   @ApiOperation({ summary: 'Создание категории' })
-  @ApiResponse({ status: 200, description: 'Категория успешно создана', type: GetCategoryDto })
+  @ApiResponse({ status: 201, description: 'Категория успешно создана', type: GetCategoryDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещен'})
@@ -27,7 +27,7 @@ export class CategoriesController {
   }
   
   @ApiOperation({ summary: 'Присвоение категории пользователю' })
-  @ApiResponse({ status: 200, description: 'Категория успешно добавлена', type: GetCategoryDto })
+  @ApiResponse({ status: 201, description: 'Категория успешно добавлена', type: GetCategoryDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные или категория уже присвоена пользователю' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 403, description: 'Доступ запрещен' })

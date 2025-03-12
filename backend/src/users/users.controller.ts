@@ -14,7 +14,7 @@ export class UsersController {
     constructor(private usersService: UsersService) {}
 
     @ApiOperation({summary: 'ADMIN/Назначение роли'})
-    @ApiResponse({ status: 200, description: 'Роль успешно назначена', type: User })
+    @ApiResponse({ status: 201, description: 'Роль успешно назначена', type: User })
     @ApiResponse({ status: 403, description: 'Доступ только для администратора' })
     @ApiResponse({ status: 404, description: 'Пользователь не найден' })
     @ApiBearerAuth()

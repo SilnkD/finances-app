@@ -8,13 +8,12 @@
   "testRegex": ".e2e-spec.ts$",
   "preset": "ts-jest",
   "moduleDirectories": ["node_modules"],
+  "collectCoverage": true,
   "collectCoverageFrom": [
-    "src/**/*.{js,ts}",
-    "!src/**/*.model.{js,ts}",  
-    "!src/**/*.module.{js,ts}",
-    "!src/**/*-dto.ts"
+    "src/**/*controller.{js,ts}",
+    "src/**/*dto.{js,ts}"
   ],
-  "coverageDirectory": "../coverage",
+  "coverageDirectory": "./coverage/e2e",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   }
