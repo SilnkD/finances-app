@@ -15,7 +15,7 @@ export class AuthController {
     constructor(private authService: AuthService) {}
 
     @ApiOperation({summary: 'Авторизация пользователя'})
-    @ApiResponse({ status: 200, description: 'Пользователь успешно авторизован', type: TokenResponseDto })
+    @ApiResponse({ status: 201, description: 'Пользователь успешно авторизован', type: TokenResponseDto })
     @ApiResponse({ status: 401, description: 'Неправильный email или пароль' })
     @Post('/login')
     login(@Body() loginDto: LoginDto) {
@@ -23,7 +23,7 @@ export class AuthController {
     }
     
     @ApiOperation({summary: 'Регистрация пользователя'})
-    @ApiResponse({ status: 200, description: 'Пользователь успешно зарегистрирован', type: TokenResponseDto })
+    @ApiResponse({ status: 201, description: 'Пользователь успешно зарегистрирован', type: TokenResponseDto })
     @ApiResponse({ status: 400, description: 'Пользователь с таким email уже зарегистрирован' })
     @Post('/register')
     register(@Body() registerDto: CreateUserDto) {

@@ -40,9 +40,9 @@ describe('AuthService', () => {
     });
 
     describe('login', () => {
-        it('should return a token if credentials are valid', async () => {
+        it('should return a token if credentials with email are valid', async () => {
             const loginDto: LoginDto = { user: 'test@example.com', password: 'password' };
-            const mockUser = { id: 1, email: 'test@example.com', password: await bcrypt.hash('password', 5), role: 'user' };
+            const mockUser = { id: 1, email: 'test@example.com', username: undefined, password: await bcrypt.hash('password', 5), role: 'user' };
 
             mockUserService.getUsersByEmail.mockResolvedValue(mockUser);
             mockUserService.getUsersByName.mockResolvedValue(null);
@@ -50,8 +50,21 @@ describe('AuthService', () => {
             const result = await authService.login(loginDto);
 
             expect(result).toEqual({ token: 'token' });
-            expect(jwtService.sign).toHaveBeenCalledWith({ id: mockUser.id, email: mockUser.email, role: mockUser.role });
-        });
+            expect(jwtService.sign).toHaveBeenCalledWith({ id: mockUser.id, email: loginDto.user, username:undefined, role: mockUser.role });
+        });     
+
+        it('should return a token if credentials with username are valid', async () => {
+            const loginDto: LoginDto = { user: 'user_name', password: 'password' };
+            const mockUser = { id: 1, email: undefined, username: 'user_name', password: await bcrypt.hash('password', 5), role: 'user' };
+        
+            mockUserService.getUsersByName.mockResolvedValue(mockUser);
+            mockUserService.getUsersByEmail.mockResolvedValue(null);
+        
+            const result = await authService.login(loginDto);
+        
+            expect(result).toEqual({ token: 'token' });
+            expect(jwtService.sign).toHaveBeenLastCalledWith({ id: mockUser.id, username: loginDto.user, email: undefined, role: mockUser.role });
+        });  
 
         it('should throw an exception if credentials are invalid', async () => {
             const loginDto: LoginDto = { user: 'test@example.com', password: 'wrongpassword' };
@@ -60,6 +73,7 @@ describe('AuthService', () => {
 
             await expect(authService.login(loginDto)).rejects.toThrow(new HttpException('Неправильный email или пароль', HttpStatus.UNAUTHORIZED));
         });
+ 
     });
 
     describe('register', () => {

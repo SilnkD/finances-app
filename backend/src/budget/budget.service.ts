@@ -77,7 +77,7 @@ export class BudgetService {
             throw new HttpException('Категория пользователя не найдена', HttpStatus.NOT_FOUND);
         }
     
-        const budget = await this.budgetRepository.findOne({ where: { user_id } }); // Используем user_id для поиска бюджета
+        const budget = await this.budgetRepository.findOne({ where: { owner_id: user_id } }); // Используем user_id для поиска бюджета
     
         if (!budget) {
             throw new HttpException('Обновленный счет не найден', HttpStatus.NOT_FOUND);
