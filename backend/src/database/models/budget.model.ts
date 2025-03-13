@@ -6,7 +6,7 @@ import { Transaction } from "./transaction.model";
 
 interface BudgetCreationAttrs {
     amount: number;
-    user_id: number;
+    owner_id: number;
 }
 
 @Table({ tableName: 'budgets', timestamps: false })

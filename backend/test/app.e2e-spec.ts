@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Role } from 'src/common/enums/roles.enum';
 import { CategoriesService } from 'src/categories/categories.service';
 import { UsersService } from 'src/users/users.service';
+import { BudgetService } from 'src/budget/budget.service';
 
 describe('AuthController (e2e)', () => {
       let app: INestApplication;
@@ -371,6 +372,117 @@ describe('UsersController (e2e)', () => {
 
         await request(app.getHttpServer())
             .delete('/users/delete/999')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(404); // Ожидаем ошибку 404
+    });
+});
+
+describe('BudgetController (e2e)', () => {
+    let app: INestApplication;
+    let jwtService: JwtService;
+
+    // Мокируем сервис бюджета
+    let budgetService = {
+        createBudget: jest.fn(),
+        getUserBudgets: jest.fn(),
+        updateBudgetAmount: jest.fn(),
+        deleteBudget: jest.fn(),
+    };
+
+    beforeEach(async () => {
+        const moduleFixture: TestingModule = await Test.createTestingModule({
+            imports: [AppModule],
+        })
+            .overrideProvider(BudgetService)
+            .useValue(budgetService)
+            .compile();
+
+        app = moduleFixture.createNestApplication();
+        jwtService = moduleFixture.get<JwtService>(JwtService);
+        await app.init();
+    });
+
+    afterEach(async () => {
+        await app.close();
+    });
+
+    it('/budgets (POST) должно создавать новый счет', async () => {
+        const createBudgetDto = { category_id: 1, amount: 1000 };
+        const mockBudgetResponse = { id: 1, category_name: 'Education', amount: 1000 };
+
+        budgetService.createBudget.mockResolvedValue(mockBudgetResponse);
+
+        const token = jwtService.sign({ id: 1 }); // Создаем мок токен
+
+        const response = await request(app.getHttpServer())
+            .post('/budgets')
+            .set('Authorization', `Bearer ${token}`)
+            .send(createBudgetDto)
+            .expect(201); // Ожидаем успешный ответ
+
+        expect(response.body).toEqual(mockBudgetResponse);
+        expect(budgetService.createBudget).toHaveBeenCalledWith(createBudgetDto, 1);
+    });
+
+    it('/budgets (GET) должно возвращать счета пользователя', async () => {
+        const mockBudgetsResponse = [
+            { id: 1, category_name: 'Education', amount: 1000 },
+            { id: 2, category_name: 'Health', amount: 2000 },
+        ];
+
+        budgetService.getUserBudgets.mockResolvedValue(mockBudgetsResponse);
+
+        const token = jwtService.sign({ id: 1 }); // Создаем мок токен
+
+        const response = await request(app.getHttpServer())
+            .get('/budgets')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200); // Ожидаем успешный ответ
+
+        expect(response.body).toEqual(mockBudgetsResponse);
+        expect(budgetService.getUserBudgets).toHaveBeenCalledWith(1);
+    });
+
+    it('/budgets (PUT) должно обновлять сумму счета', async () => {
+        const updateBudgetDto = { category_id: 1, amount: 1500 };
+        const mockUpdatedBudgetResponse = { id: 1, category_name: 'Education', amount: 1500 };
+
+        budgetService.updateBudgetAmount.mockResolvedValue(mockUpdatedBudgetResponse);
+
+        const token = jwtService.sign({ id: 1 }); // Создаем мок токен
+
+        const response = await request(app.getHttpServer())
+            .put('/budgets') // вызываем PUT запрос на тот же путь
+            .set('Authorization', `Bearer ${token}`)
+            .send(updateBudgetDto)
+            .expect(200); // Ожидаем успешный ответ
+
+        expect(response.body).toEqual(mockUpdatedBudgetResponse);
+        expect(budgetService.updateBudgetAmount).toHaveBeenCalledWith(updateBudgetDto, 1);
+    });
+
+    it('/budgets/:id (DELETE) должно удалять счет и возвращать сообщение', async () => {
+        const mockDeleteResponse = { message: 'Счет успешно удалён' };
+        budgetService.deleteBudget.mockResolvedValue(mockDeleteResponse);
+
+        const token = jwtService.sign({ id: 1 }); // Создаем мок токен
+
+        const response = await request(app.getHttpServer())
+            .delete('/budgets/1') // замените на ID, который хотите удалить
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200); // Ожидаем успешный ответ
+
+        expect(response.body).toEqual(mockDeleteResponse);
+        expect(budgetService.deleteBudget).toHaveBeenCalledWith("1", 1);
+    });
+
+    it('/budgets/:id (DELETE) должно возвращать ошибку, если счет не найден', async () => {
+        budgetService.deleteBudget.mockRejectedValue(new HttpException('Счет не найден', HttpStatus.NOT_FOUND));
+
+        const token = jwtService.sign({ id: 1 }); // Создаем мок токен
+
+        await request(app.getHttpServer())
+            .delete('/budgets/999') // ID, который не существует
             .set('Authorization', `Bearer ${token}`)
             .expect(404); // Ожидаем ошибку 404
     });

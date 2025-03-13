@@ -13,12 +13,16 @@ export class TransactionsService {
     private budgetServise: BudgetService
   ) {}
 
-  async createTransaction(dto: CreateTransactionDto) {
+  async createTransaction(dto: CreateTransactionDto, user_id: number) {
     const budget = await this.budgetRepository.findOne({ where: { id: dto.budget_id } });
     if (!budget) {
       throw new HttpException('Счет не найден', HttpStatus.NOT_FOUND);
     }
-    await this.budgetServise.updateBudgetAmount(budget.id, dto.amount);
+    let budgetDto = {
+      category_id: budget.id,
+      amount: dto.amount
+    }
+    await this.budgetServise.updateBudgetAmount(budgetDto, user_id);
     const transaction = await this.transactionRepository.create(dto);
     return transaction;
   }

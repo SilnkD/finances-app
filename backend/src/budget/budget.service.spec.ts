@@ -6,7 +6,8 @@ import { UserCategory } from 'src/database/models/user-categories.model';
 import { getModelToken } from '@nestjs/sequelize';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { CreateBudgetDto } from './dto/create-budget-dto';
-import { Model } from 'sequelize';
+import { ExpenseType } from 'src/common/enums/expense-type.enum';
+import { AccessType } from 'src/common/enums/access-type.enum';
 
 describe('BudgetService', () => {
   let service: BudgetService;
@@ -18,15 +19,19 @@ describe('BudgetService', () => {
     budgetRepository = {
       create: jest.fn(),
       findOne: jest.fn(),
+      findByPk: jest.fn(),
       update: jest.fn(),
+      destroy: jest.fn(), 
     } as any;
 
     categoryRepository = {
+      create: jest.fn(),
       findByPk: jest.fn(),
       findOne: jest.fn(),
     } as any;
 
     userCategoryRepository = {
+      create: jest.fn(),
       findByPk: jest.fn(),
       findOne: jest.fn(),
       findAll: jest.fn(),
@@ -63,81 +68,89 @@ describe('BudgetService', () => {
     name: 'Test Category',
     save: jest.fn().mockResolvedValue(true),
   } as unknown as Category;
-
-  const mockCategory2: Category = {
-    id: 2,
-    name: 'Test Category',
-    save: jest.fn().mockResolvedValue(true),
-  } as unknown as Category;
-
-  const mockBudget: Budget = {
-    id: 1,
-    user_id: 1,
-    category_id: 1,
-    amount: 1000,
-    save: jest.fn().mockResolvedValue(true),
-  } as unknown as Budget;
-
-  const mockBudget2: Budget = {
-    id: 2,
-    user_id: 1,
-    category_id: 2,
-    amount: 2000,
-    save: jest.fn().mockResolvedValue(true),
-  } as unknown as Budget;
-
-  const mockUserCategory: UserCategory = {
-    id: 1,
-    user_id: 1,
-    category_id: 1,
-    percentage: 10,
-    budget: mockBudget,
-  } as unknown as UserCategory;
-  
-  const mockUserCategory2: UserCategory = {
-    id: 2,
-    user_id: 1,
-    category_id: 2,
-    percentage: 10,
-    budget: mockBudget2,
-  } as unknown as UserCategory;  
-  
-  const mockCategory3: any = { id: 3, name: 'Test Category' } as unknown as UserCategory;  
-  const mockUserCategory3: any = { id: 3, user_id: 1, category_id: 3, percentage: 10 } as unknown as UserCategory;   
-
-  const mockUserCategories = [mockUserCategory, mockUserCategory2, mockUserCategory3];
-  const mockCategories = [mockCategory, mockCategory2, mockCategory3];
   
   describe('createBudget', () => {
+    
+    it('should create a new budget and return it', async () => {
+    const createDto: CreateBudgetDto = { category_id: 1, amount: 1000 };
 
-    it('should create a budget and return it', async () => {
-      const createBudgetDto: CreateBudgetDto = {
-          category_id: 3,
-          amount: 3000,
+    const mockCategory: any = {
+        id: 1,
+        name: 'Test Category',
+        expense_type: ExpenseType.Expenses,
+        access_type: AccessType.Public,
+        image_url: 'https://example.com/image.jpg',
+    };
+
+    const mockUserCategory: any = {
+        id: 1,
+        user_id: 1,
+        category_id: 1,
+        percentage: 20,
+    };
+
+    const mockBudget: any = {
+        id: 1,
+        owner_id: mockUserCategory.id,
+        amount: 1000,
+        save: jest.fn().mockResolvedValue(true), // Имитируем сохранение
+    };
+
+    const mockCreatedBudget = {
+        id: 1,
+        category_name: 'Test Category',
+        amount: 1000,
+    };
+
+    // Настройка моков
+    categoryRepository.findOne.mockResolvedValue(mockCategory); // Убедиться, что категория найдена
+    userCategoryRepository.findOne.mockResolvedValue(mockUserCategory); // Убедиться, что пользовательская категория найдена
+    budgetRepository.findOne.mockResolvedValue(null); // Проверка отсутствия существующего бюджета
+    budgetRepository.create.mockResolvedValue(mockBudget); // Создать новый бюджет
+    jest.spyOn(service, 'displayBudget').mockResolvedValue(mockCreatedBudget); // Эмулировать вызов displayBudget
+
+    // Вызов метода сервиса
+    const result = await service.createBudget(createDto, 1);
+
+    // Проверки
+    expect(result).toEqual(mockCreatedBudget); // Сравнение с возвращаемым созданным бюджетом
+    expect(budgetRepository.findOne).toHaveBeenCalledWith({ where: { owner_id: mockUserCategory.id } }); // Проверка на существующий бюджет
+    expect(budgetRepository.create).toHaveBeenCalledWith({
+        owner_id: mockUserCategory.id,
+        amount: createDto.amount,
+    }); // Проверка вызова создания бюджета
+    expect(service.displayBudget).toHaveBeenCalledWith(mockBudget); // Проверка вызова displayBudget
+    });
+
+    it('should throw error if budget already exists', async () => {
+      const createDto: CreateBudgetDto = { category_id: 1, amount: 1000 };
+  
+      const mockCategory: any = {
+          id: 1,
+          name: 'Test Category',
       };
   
-      const mockBudget3: any = {
-          id: 3,
+      const mockUserCategory: any = {
+          id: 1,
           user_id: 1,
-          category_id: 3,
-          amount: 3000,
+          category_id: 1,
+          percentage: 20,
       };
   
-      categoryRepository.findOne.mockResolvedValue(mockCategory3);
-      userCategoryRepository.findOne.mockResolvedValue(mockUserCategory3);
-      budgetRepository.create.mockResolvedValue(mockBudget3);
-      budgetRepository.findOne.mockResolvedValue(mockBudget3); 
+      const mockExistingBudget: any = {
+          id: 1,
+          owner_id: mockUserCategory.id,
+          amount: 1000,
+      };
   
-      const result = await service.createBudget(createBudgetDto, 1);
+      categoryRepository.findOne.mockResolvedValue(mockCategory); // Категория найдена
+      userCategoryRepository.findOne.mockResolvedValue(mockUserCategory); // Пользовательская категория найдена
+      budgetRepository.findOne.mockResolvedValue(mockExistingBudget); // Бюджет уже существует
   
-      expect(result).toEqual({
-          id: 3,
-          category_name: mockCategory.name,
-          amount: mockBudget.amount,
-      });
-  
-      expect(budgetRepository.create).toHaveBeenCalledWith({ ...createBudgetDto, user_id: 1 });
-  });
+      await expect(service.createBudget(createDto, 1)).rejects.toThrow(
+          new HttpException('Счет для данной категории уже существует', HttpStatus.BAD_REQUEST),
+      );
+    });  
 
     it('should throw error if category not found', async () => {
       const dto: CreateBudgetDto = { category_id: 1, amount: 100 };
@@ -161,18 +174,19 @@ describe('BudgetService', () => {
 
   describe('displayBudget', () => {
     it('should return the displayed budget', async () => {
-      userCategoryRepository.findByPk.mockResolvedValue(mockUserCategory);
-      categoryRepository.findByPk.mockImplementation((id) => {
-        const category = mockCategories.find(cat => cat.id === id);
-        return Promise.resolve(category || null);
-      });
+      const mockBudget = { id: 1, owner_id: 1, amount: 1000 };
+      const mockUserCategory: any = { id: 1, category_id: 1 };
+      const mockCategory: any = { id: 1, name: 'Education' };
+
+      userCategoryRepository.findOne.mockResolvedValue(mockUserCategory);
+      categoryRepository.findByPk.mockResolvedValue(mockCategory);
 
       const result = await service.displayBudget(mockBudget);
 
       expect(result).toEqual({
-        id: mockBudget.id,
-        category_name: mockCategory.name,
-        amount: mockBudget.amount,
+        id: 1,
+        category_name: 'Education',
+        amount: 1000,
       });
     });
 
@@ -184,89 +198,162 @@ describe('BudgetService', () => {
 
       await expect(service.displayBudget(mockBudget)).rejects.toThrow(new HttpException('Категория не найдена', HttpStatus.NOT_FOUND));
     });
+
+    it('should throw error if user category not found in displayBudget', async () => {
+      const mockBudget = { id: 1, owner_id: 1, amount: 1000 };
+      const mockCategory: any = { id: 1, name: 'Education' };
+
+      categoryRepository.findByPk.mockResolvedValue(mockCategory);  
+      userCategoryRepository.findOne.mockResolvedValue(null); // Нет пользовательской категории
+  
+      await expect(service.displayBudget(mockBudget)).rejects.toThrow(
+          new HttpException('Категория пользователя не найдена', HttpStatus.NOT_FOUND),
+      );
+  });
+  
   });
 
   describe('getUserBudgets', () => {
     it('should return all user budgets', async () => {
-      const user_id = 1;
+      const mockUserCategories: any = [
+        { id: 1, category_id: 1, budget: { id: 1, amount: 1000 } },
+        { id: 2, category_id: 2, budget: { id: 2, amount: 2000 } },
+      ];
+      const mockCategories: any = [
+        { id: 1, name: 'Education' },
+        { id: 2, name: 'Health' },
+      ];
 
       userCategoryRepository.findAll.mockResolvedValue(mockUserCategories);
-      
-      categoryRepository.findByPk.mockImplementation((id) => {
-        const category = mockCategories.find(cat => cat.id === id);
-        return Promise.resolve(category || null);
-      });
-      
+      categoryRepository.findByPk
+        .mockResolvedValueOnce(mockCategories[0])
+        .mockResolvedValueOnce(mockCategories[1]);
 
-      const results = await service.getUserBudgets(user_id);
+      const result = await service.getUserBudgets(1);
 
-      expect(results.length).toBe(2);
-      expect(results).toEqual([
-        { id: 1, category_name: 'Test Category', amount: 1000 },
-        { id: 2, category_name: 'Test Category', amount: 2000 },
+      expect(result).toEqual([
+        { id: 1, category_name: 'Education', amount: 1000 },
+        { id: 2, category_name: 'Health', amount: 2000 },
       ]);
     });
   });
 
   describe('updateBudgetAmount', () => {
-    it('should update budget amount and return displayed budget', async () => {
-      const budget_id = 1;
-      const newAmount = 2000;
-      const updatedBudget = { ...mockBudget, amount: newAmount } as unknown as Model<any, any>;
-
-      budgetRepository.update.mockResolvedValue([1]); // Количество обновленных записей   
-      budgetRepository.findOne.mockResolvedValue(updatedBudget);    
-
-      const result = await service.updateBudgetAmount(budget_id, newAmount);
-
-      expect(result).toEqual({
-        id: mockBudget.id,
-        category_name: mockCategory.name,
-        amount: newAmount,
-      });
-      expect(budgetRepository.update).toHaveBeenCalledWith({ amount: newAmount }, { where: { id: budget_id } });
-    });
+    it('should update the budget and return the updated budget', async () => {
+      const updateDto: CreateBudgetDto = { category_id: 1, amount: 5000 };
+  
+      const mockCategory: any = {
+          id: 1,
+          name: 'Test Category',
+          expense_type: ExpenseType.Expenses,
+          access_type: AccessType.Private,
+          image_url: 'https://example.com/image.jpg',
+      };
+  
+      const mockUserCategory: any = {
+          id: 1,
+          user_id: 1,
+          category_id: 1,
+          percentage: 10,
+      };
+  
+      const mockBudget: any = {
+          id: 1,
+          owner_id: mockUserCategory.id,
+          amount: 1000,
+          save: jest.fn().mockResolvedValue(true), // Имитируем сохранение в базе
+      };
+  
+      const mockUpdatedBudget = {
+          id: 1,
+          category_name: 'Test Category',
+          amount: 5000,
+      };
+  
+      // Настройка моков
+      categoryRepository.findOne.mockResolvedValue(mockCategory); // Убедиться, что категория найдена
+      userCategoryRepository.findOne.mockResolvedValue(mockUserCategory); // Убедиться, что пользовательская категория найдена
+      budgetRepository.findOne.mockResolvedValue(mockBudget); // Найти существующий бюджет
+      jest.spyOn(service, 'displayBudget').mockResolvedValue(mockUpdatedBudget); // Эмуляция вызова displayBudget
+  
+      // Вызов метода сервиса
+      const result = await service.updateBudgetAmount(updateDto, 1);
+  
+      // Проверки
+      expect(result).toEqual(mockUpdatedBudget); // Сравнение с возвращаемым обновленным бюджетом
+      expect(mockBudget.amount).toBe(5000); // Проверка обновленного значения
+      expect(mockBudget.save).toHaveBeenCalled(); // Проверка вызова сохранения
+      expect(service.displayBudget).toHaveBeenCalledWith(true); // Проверка вызова displayBudget
   });
 
-  describe('getBudget', () => {
-    it('should return the budget for a user and category', async () => {
-      const user_id = 1;
-      const category_id = 1;
-
-      userCategoryRepository.findOne.mockResolvedValue(mockUserCategory);
-      budgetRepository.findOne.mockResolvedValue(mockBudget);
-      categoryRepository.findByPk.mockImplementation((id) => {
-        const category = mockCategories.find(cat => cat.id === id);
-        return Promise.resolve(category || null);
-      });
-
-      const result = await service.getBudget(user_id, category_id);
-
-      expect(result).toEqual({
-        id: mockBudget.id,
-        category_name: mockCategory.name,
-        amount: mockBudget.amount,
-      });
-      expect(userCategoryRepository.findOne).toHaveBeenCalledWith({ where: { user_id, category_id } });
-    });
-
-    it('should throw an error if user category is not found', async () => {
-      const user_id = 1;
-      const category_id = 1;
-
-      userCategoryRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.getBudget(user_id, category_id)).rejects.toThrow(new HttpException('Категория пользователя не найдена', HttpStatus.NOT_FOUND));
-    });
-
-    it('should throw an error if budget is not found', async () => {
-      const user_id = 1;
-      const category_id = 1;
-
-      userCategoryRepository.findOne.mockResolvedValue(mockUserCategory);
+    it('should throw error if budget is not found', async () => {
+      const mockAnswer: any = { id: 1};
+      categoryRepository.findOne.mockResolvedValue(mockAnswer);
+      userCategoryRepository.findOne.mockResolvedValue(mockAnswer);
       budgetRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.getBudget(user_id, category_id)).rejects.toThrow(new HttpException('Обновленный счет не найден', HttpStatus.NOT_FOUND));
+      await expect(
+        service.updateBudgetAmount({ category_id: 1, amount: 1000 }, 1),
+      ).rejects.toThrow('Счет для данной категории не найден');
+    });
+
+    it('should throw error if category not found in updateBudgetAmount', async () => {
+      const updateDto: CreateBudgetDto = { category_id: 1, amount: 5000 };
+  
+      categoryRepository.findOne.mockResolvedValue(null); 
+  
+      await expect(service.updateBudgetAmount(updateDto, 1)).rejects.toThrow(
+          new HttpException('Категория не найдена', HttpStatus.NOT_FOUND),
+      );
+  });
+
+  it('should throw error if user category not found in updateBudgetAmount', async () => {
+    const updateDto: CreateBudgetDto = { category_id: 1, amount: 5000 };
+
+    const mockCategory: any = {
+        id: 1,
+        name: 'Test Category',
+    };
+
+    categoryRepository.findOne.mockResolvedValue(mockCategory); 
+    userCategoryRepository.findOne.mockResolvedValue(null); 
+
+    await expect(service.updateBudgetAmount(updateDto, 1)).rejects.toThrow(
+        new HttpException('Пользователь не указал процент трат категории', HttpStatus.NOT_FOUND),
+    );
+  });
+
+  });
+
+  describe('deleteBudget', () => {
+    it('should delete a budget', async () => {
+      const mockBudget:any = { id: 1, owner_id: 1 };
+      const mockUserCategory: any = { id: 1, user_id: 1 };
+
+      budgetRepository.findByPk.mockResolvedValue(mockBudget);
+      userCategoryRepository.findByPk.mockResolvedValue(mockUserCategory);
+
+      const result = await service.deleteBudget(1, 1);
+
+      expect(budgetRepository.destroy).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(result).toEqual({ message: 'Счет 1 успешно удалён' });
+    });
+
+    it('should throw error if budget is not found', async () => {
+      budgetRepository.findByPk.mockResolvedValue(null);
+
+      await expect(service.deleteBudget(1, 1)).rejects.toThrow('Счет нен найден');
+    });
+
+    it('should throw error if user tries to delete someone else\'s budget', async () => {
+      const mockBudget: any = { id: 1, owner_id: 1 };
+      const mockUserCategory: any = { id: 1, user_id: 2 }; // Другой пользователь
+
+      budgetRepository.findByPk.mockResolvedValue(mockBudget);
+      userCategoryRepository.findByPk.mockResolvedValue(mockUserCategory);
+
+      await expect(service.deleteBudget(1, 1)).rejects.toThrow('Вы не можете удалить чужой счет');
     });
   });
+
 });

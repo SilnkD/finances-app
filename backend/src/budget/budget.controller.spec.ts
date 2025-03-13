@@ -16,6 +16,7 @@ describe('BudgetController', () => {
     createBudget: jest.fn(),
     getUserBudgets: jest.fn(),
     updateBudgetAmount: jest.fn(),
+    deleteBudget: jest.fn(),
   };
 
   const mockJwtService = {
@@ -112,6 +113,37 @@ describe('BudgetController', () => {
     await expect(
       budgetController.updateBudgetAmount(dto, req),
     ).rejects.toThrow('Счет не найден');
+  });
+  
+  it('should delete a budget', async () => {
+    const id = 1; // ID бюджета
+    const req = { user: { id: 1 } }; // Пользователь, отправляющий запрос
+    mockBudgetService.deleteBudget.mockResolvedValue({ message: `Счет ${id} успешно удалён` });
+  
+    const result = await budgetController.deleteBudget(id, req);
+  
+    expect(budgetService.deleteBudget).toHaveBeenCalledWith(id, req.user.id);
+    expect(result).toEqual({ message: `Счет ${id} успешно удалён` });
+  });
+  
+  it('should throw error if budget not found', async () => {
+    const id = 999; // Несуществующий ID бюджета
+    const req = { user: { id: 1 } };
+    mockBudgetService.deleteBudget.mockRejectedValue(
+      new HttpException('Счет не найден', HttpStatus.NOT_FOUND),
+    );
+  
+    await expect(budgetController.deleteBudget(id, req)).rejects.toThrow('Счет не найден');
+  });
+  
+  it('should throw error if user is forbidden from deleting the budget', async () => {
+    const id = 2; // ID бюджета другого пользователя
+    const req = { user: { id: 1 } };
+    mockBudgetService.deleteBudget.mockRejectedValue(
+      new HttpException('Вы не можете удалить чужой счет', HttpStatus.FORBIDDEN),
+    );
+  
+    await expect(budgetController.deleteBudget(id, req)).rejects.toThrow('Вы не можете удалить чужой счет');
   });
   
 });

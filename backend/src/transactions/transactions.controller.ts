@@ -18,7 +18,8 @@ export class TransactionsController {
   @ApiBearerAuth()
   @Post()
   async createTransaction(@Body() createTransactionDto: CreateTransactionDto, @Request() req) {
-    return this.transactionsService.createTransaction(createTransactionDto);
+    const userId = req.user.id;
+    return this.transactionsService.createTransaction(createTransactionDto, userId);
   }
 
   @ApiOperation({ summary: 'Получение транзакций по счету' })
