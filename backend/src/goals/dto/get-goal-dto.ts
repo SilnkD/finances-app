@@ -23,10 +23,6 @@ export class GetGoalDto {
     @IsNumber({}, { message: 'Размер финансовой цели должен быть числовым значением' })
     readonly target_amount: number;
 
-    @ApiProperty({ example: '1000', description: 'Текущие накопления (BYN)' })
-    @IsNumber({}, { message: 'Текущий размер финансовой цели должен быть числом' })
-    readonly current_amount: number;
-
     @ApiProperty({ example: new Date(), description: 'Дата начала накоплений' })
     @IsDate({ message: 'Дата начала должна быть датой' })
     readonly start_date: string;

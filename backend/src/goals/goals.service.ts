@@ -5,6 +5,7 @@ import { CreateGoalDto } from './dto/create-goal-dto';
 import { Category } from '../database/models/categories.model';
 import { GetGoalDto } from './dto/get-goal-dto';
 import { Budget } from 'src/database/models/budget.model';
+import { UserCategory } from 'src/database/models/user-categories.model';
 
 @Injectable()
 export class GoalsService {
@@ -28,37 +29,64 @@ export class GoalsService {
     async displayGoal(goals) {
         const displayedGoals: GetGoalDto[] = [];
         for (const goal of goals) {
-          if (goal.budget && goal.budget.usercategory) {
-            const category = await this.categoryRepository.findByPk(goal.budget.usercategory.category_id);
-      
-            if (category) {
-              displayedGoals.push({
-                id: goal.id,
-                category_name: category.name,
-                user_id: goal.user_id,
-                name: goal.name,
-                target_amount: goal.target_amount,
-                current_amount: goal.current_amount,
-                start_date: goal.start_date,
-                end_date: goal.end_date,
-              });
+            if (goal.budget && goal.budget.usercategory && goal.budget.usercategory.category) {
+                displayedGoals.push({
+                    id: goal.id,
+                    category_name: goal.budget.usercategory.category.name,
+                    user_id: goal.user_id,
+                    name: goal.name,
+                    target_amount: goal.target_amount,
+                    start_date: goal.start_date,
+                    end_date: goal.end_date,
+                });
             }
-          }
         }
-      
         return displayedGoals;
-      }      
+    }         
 
     async getGoals(): Promise<GetGoalDto[]> {
-        const goals = await this.goalRepository.findAll({ include: [Category] });
+        const goals = await this.goalRepository.findAll({
+            include: [
+                {
+                    model: Budget,
+                    as: 'budget',
+                    include: [
+                        {
+                            model: UserCategory,
+                            as: 'usercategory',
+                            include: [
+                                { model: Category, as: 'category' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
         return this.displayGoal(goals);
     }
-
+    
     async getUserGoals(userId: number): Promise<GetGoalDto[]> {
-        const goals = await this.goalRepository.findAll({ where: { user_id: userId }, include: [Category] });
+        const goals = await this.goalRepository.findAll({
+            where: { user_id: userId },
+            include: [
+                {
+                    model: Budget,
+                    as: 'budget',
+                    include: [
+                        {
+                            model: UserCategory,
+                            as: 'usercategory',
+                            include: [
+                                { model: Category, as: 'category' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
         return this.displayGoal(goals);
     }
-
+    
     async deleteGoal(userId: number, id: number) {
         const goal = await this.goalRepository.findOne({ where: { id } });
         if (!goal) {
@@ -89,17 +117,32 @@ export class GoalsService {
         }
 
         await this.goalRepository.update(dto, { where: { id } });
-        const updatedGoal = await this.goalRepository.findOne({ where: { id }, include: [Category] });
+        const updatedGoal = await this.goalRepository.findOne({
+            where: { id },
+            include: [
+                {
+                    model: Budget,
+                    as: 'budget',
+                    include: [
+                        {
+                            model: UserCategory,
+                            as: 'usercategory',
+                            include: [
+                                { model: Category, as: 'category' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
 
         if (updatedGoal !== null) {
-            const category = await this.categoryRepository.findByPk(updatedGoal.budget.usercategory.category_id);
-            if (category) return {
+            return {
                 id: updatedGoal.id,
-                category_name: category.name,
+                category_name: updatedGoal.budget.usercategory.category.name,
                 user_id: updatedGoal.user_id,
                 name: updatedGoal.name,
                 target_amount: updatedGoal.target_amount,
-                current_amount: updatedGoal.budget.amount,
                 start_date: updatedGoal.start_date,
                 end_date: updatedGoal.end_date
             };
