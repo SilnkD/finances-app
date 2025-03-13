@@ -50,10 +50,6 @@ export class BudgetService {
             throw new HttpException('Счет для данной категории уже существует', HttpStatus.BAD_REQUEST);
         }
     
-        console.log('Category:', category);
-        console.log('UserCategory:', userCategory);
-        console.log('Owner:', owner_id);
-    
         const budget = await this.budgetRepository.create({ owner_id, amount });
         return this.displayBudget(budget);
     }       

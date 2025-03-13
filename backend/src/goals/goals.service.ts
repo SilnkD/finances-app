@@ -148,6 +148,6 @@ export class GoalsService {
             };
         }
 
-        throw new HttpException('Цель не найдена', HttpStatus.NOT_FOUND);
+        throw new HttpException('Цель не обновлена', HttpStatus.NOT_MODIFIED);
     }
 }

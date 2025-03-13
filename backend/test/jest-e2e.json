@@ -11,6 +11,7 @@
   "collectCoverage": true,
   "collectCoverageFrom": [
     "src/**/*controller.{js,ts}",
+    "src/**/*service.{js,ts}",
     "src/**/*dto.{js,ts}"
   ],
   "coverageDirectory": "./coverage/e2e",

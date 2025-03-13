@@ -224,7 +224,7 @@ describe('CategoriesService', () => {
       }
 
       categoryModel.findByPk.mockResolvedValue(mockCategory); 
-      userCategoryModel.findOne.mockResolvedValue(mockUserCategory); // Имитация существующей записи для пользователя
+      userCategoryModel.findOne.mockResolvedValue(mockUserCategory);
 
       await expect(service.assignCategory(1, 1, 50)).rejects.toThrow('Категория уже присвоена пользователю');
     });
