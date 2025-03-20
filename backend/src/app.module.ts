@@ -11,6 +11,9 @@ import { Budget } from './database/models/budget.model';
 import { Transaction } from './database/models/transaction.model';
 import { TransactionsModule } from './transactions/transactions.module';
 import * as process from 'process'; // Import process for environment variable access
+import { GoalsModule } from './goals/goals.module';
+import { BudgetModule } from './budget/budget.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -39,6 +42,9 @@ import * as process from 'process'; // Import process for environment variable a
     AuthModule,
     CategoriesModule,
     TransactionsModule,
+    GoalsModule,
+    BudgetModule,
+    UsersModule
   ],
   controllers: [],
   providers: [],

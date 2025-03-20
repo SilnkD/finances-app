@@ -1,9 +1,8 @@
-import { Body, Controller, Post, UseGuards, Request, Get, Delete, Param, Put, HttpException } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Request, Get, Param, Delete, HttpException, Put } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { GoalsService } from './goals.service';
 import { CreateGoalDto } from './dto/create-goal-dto';
 import { GetGoalDto } from './dto/get-goal-dto'; 
-import { Goal } from '../database/models/goals.model';
 import { IdGuard } from 'src/common/guards/auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -15,7 +14,7 @@ export class GoalsController {
     constructor(private readonly goalsService: GoalsService) {}
 
     @ApiOperation({ summary: 'Создание цели' })
-    @ApiResponse({ status: 200, description: 'Цель успешно создана', type: GetGoalDto })
+    @ApiResponse({ status: 201, description: 'Цель успешно создана', type: GetGoalDto })
     @ApiResponse({ status: 400, description: 'Некорректные данные' })
     @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
     @UseGuards(IdGuard)

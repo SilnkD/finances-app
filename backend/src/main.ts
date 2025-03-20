@@ -20,7 +20,6 @@ async function start() {
     .setTitle('Трекер финансов')
     .setDescription('Приложение для личных финансовых целей')
     .setVersion('1.0.0')
-    .addTag('Silenok')
     .addBearerAuth()
     .build()
   const document = SwaggerModule.createDocument(app, config);
