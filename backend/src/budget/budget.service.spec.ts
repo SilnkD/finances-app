@@ -342,7 +342,7 @@ describe('BudgetService', () => {
     it('should throw error if budget is not found', async () => {
       budgetRepository.findByPk.mockResolvedValue(null);
 
-      await expect(service.deleteBudget(1, 1)).rejects.toThrow('Счет нен найден');
+      await expect(service.deleteBudget(1, 1)).rejects.toThrow('Счет не найден');
     });
 
     it('should throw error if user tries to delete someone else\'s budget', async () => {

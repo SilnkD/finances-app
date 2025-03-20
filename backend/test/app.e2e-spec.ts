@@ -1,16 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus, INestApplication } from '@nestjs/common';
+import { INestApplication, HttpException, HttpStatus } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from 'src/common/enums/roles.enum';
-import { UsersService } from 'src/users/users.service';
 import { BudgetService } from '../src/budget/budget.service';
 import { ExpenseType } from 'src/common/enums/expense-type.enum';
-import { TransactionsService } from '../src/transactions/transactions.service';
-import { CreateTransactionDto } from '../src/transactions/dto/create-transaction-dto';
+import { Category } from 'src/database/models/categories.model';
+import { UserCategory } from 'src/database/models/user-categories.model';
+import { Budget } from 'src/database/models/budget.model';
+import { Role } from 'src/common/enums/roles.enum';
+import { UsersService } from 'src/users/users.service'; 
 import { GoalsService } from 'src/goals/goals.service';
 import { CreateGoalDto } from 'src/goals/dto/create-goal-dto';
+import { decode } from 'jsonwebtoken'; 
+import { TransactionsService } from 'src/transactions/transactions.service';
+import { CreateTransactionDto } from 'src/transactions/dto/create-transaction-dto';
+import { AccessType } from 'src/common/enums/access-type.enum';
 
 describe('AuthController (e2e)', () => {
     let app: INestApplication;
@@ -234,12 +239,13 @@ describe('UsersController (e2e)', () => {
     });
 });
 
-/*
-describe('GoalsController (e2e)', () => {
+describe('CategoriesController (e2e)', () => {
     let app: INestApplication;
-    let goalsService: GoalsService;
-    let token: string; 
-    let goalId: number; 
+    let jwtService: JwtService;
+    let createdCategoryId: number;
+    let userId: number;
+    let adminToken: string;
+    let userToken: string;
 
     beforeEach(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -247,182 +253,459 @@ describe('GoalsController (e2e)', () => {
         }).compile();
 
         app = moduleFixture.createNestApplication();
-        goalsService = moduleFixture.get<GoalsService>(GoalsService);
-        await app.init();
-
-        await request(app.getHttpServer()).post('/auth/register').send({ 
-            email: 'test@example.com', 
-            password: 'password', 
-            username: 'testuser' 
-        });
-
-        const loginResponse = await request(app.getHttpServer())
-            .post('/auth/login')
-            .send({ user: 'test@example.com', password: 'password' });
-        token = loginResponse.body.token; 
-    });
-
-    afterEach(async () => {
-        await app.close();
-    });
-
-    describe('POST /goals', () => {
-        it('should create a new goal', async () => {
-            const createGoalDto: CreateGoalDto = {
-                name: 'Test Goal',
-                target_amount: 1000,
-                start_date: new Date().toISOString(),
-                end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Завтрашняя дата
-                budget_id: 1, 
-            };
-
-            const response = await request(app.getHttpServer())
-                .post('/goals')
-                .set('Authorization', `Bearer ${token}`)
-                .send(createGoalDto)
-                .expect(201);
-
-            goalId = response.body.id; // Сохраняем ID созданной цели
-            expect(response.body.name).toBe(createGoalDto.name);
-        });
-    });
-
-    describe('GET /goals', () => {
-        it('should retrieve all goals (Admin)', async () => {
-            const response = await request(app.getHttpServer())
-                .get('/goals') 
-                .set('Authorization', `Bearer ${token}`) // Предполагаем, что токен администратора
-                .expect(200);
-            
-            expect(Array.isArray(response.body)).toBeTruthy();
-        });
-    });
-
-    describe('GET /goals/user', () => {
-        it('should retrieve goals for the authenticated user', async () => {
-            const response = await request(app.getHttpServer())
-                .get('/goals/user')
-                .set('Authorization', `Bearer ${token}`)
-                .expect(200);
-
-            expect(Array.isArray(response.body)).toBeTruthy();
-        });
-    });
-
-    describe('PUT /goals/:id', () => {
-        it('should update an existing goal', async () => {
-            const updateGoalDto = {
-                name: 'Updated Goal',
-                target_amount: 1500,
-            };
-
-            const response = await request(app.getHttpServer())
-                .put(`/goals/${goalId}`)
-                .set('Authorization', `Bearer ${token}`)
-                .send(updateGoalDto)
-                .expect(200);
-
-            expect(response.body.name).toBe(updateGoalDto.name);
-            expect(response.body.target_amount).toBe(updateGoalDto.target_amount);
-        });
-    });
-
-    describe('DELETE /goals/:id', () => {
-        it('should delete an existing goal', async () => {
-            await request(app.getHttpServer())
-                .delete(`/goals/delete/${goalId}`) 
-                .set('Authorization', `Bearer ${token}`)
-                .expect(200);
-
-            // Проверяем, что цель удалена
-            const getResponse = await request(app.getHttpServer())
-                .get(`/goals/user`) 
-                .set('Authorization', `Bearer ${token}`);
-            expect(getResponse.body.find((goal) => goal.id === goalId)).toBeUndefined();
-        });
-    });
-});
-
-describe('CategoriesController (e2e)', () => {
-    let app: INestApplication;
-    let jwtService: JwtService;
-    let createdCategoryId: number;
-
-    beforeEach(async () => {
-        const moduleFixture: TestingModule = await Test.createTestingModule({
-            imports: [AppModule],  // Убедитесь, что ваш модуль категорий импортирован
-        }).compile();
-
-        app = moduleFixture.createNestApplication();
         jwtService = moduleFixture.get<JwtService>(JwtService);
         await app.init();
+
+        // Регистрация администратора и пользователя
+        const adminResponse = await request(app.getHttpServer())
+            .post('/auth/register')
+            .send({ email: 'admin@example.com', password: 'adminpassword', username: 'adminuser' })
+            .expect(201);
+        adminToken = adminResponse.body.token;
+
+        const userResponse = await request(app.getHttpServer())
+            .post('/auth/register')
+            .send({ email: 'testuser@example.com', password: 'password', username: 'testuser' })
+            .expect(201);
+        
+        const token = userResponse.body.token;
+        const decodedToken: any = decode(token);
+        userId = decodedToken.id;
+        userToken = token; // Сохраняем токен
     });
 
     afterEach(async () => {
-        // Удаляем созданные категории после каждого теста
         if (createdCategoryId) {
-            const token = jwtService.sign({ id: 1, role: Role.Admin }); // Admin token
             await request(app.getHttpServer())
                 .delete(`/categories/delete/${createdCategoryId}`)
-                .set('Authorization', `Bearer ${token}`);
+                .set('Authorization', `Bearer ${adminToken}`);
         }
+    });
+
+    afterAll(async () => {
         await app.close();
     });
 
-    it('/categories (POST) should create a category and return the created category', async () => {
+    it('POST /categories should create a category by admin', async () => {
         const createCategoryDto = {
-            name: 'New Category',
+            name: 'Admin Created Category',
             expense_type: ExpenseType.Expenses,
             image_url: 'http://example.com/image.png',
-            percentage: 50
+            percentage: 50,
         };
-        const token = jwtService.sign({ id: 1, role: Role.Admin });
 
         const response = await request(app.getHttpServer())
             .post('/categories')
-            .set('Authorization', `Bearer ${token}`)
+            .set('Authorization', `Bearer ${adminToken}`)
             .send(createCategoryDto)
             .expect(201);
 
-        createdCategoryId = response.body.id; // Сохраняем id для удаления
+        createdCategoryId = response.body.id;
         expect(response.body).toHaveProperty('id');
+        expect(response.body.name).toBe(createCategoryDto.name);
     });
 
-    it('/categories (GET) should return categories for user', async () => {
-        const token = jwtService.sign({ id: 1, role: Role.User });
+    it('POST /categories should create a category by user', async () => {
+        const createCategoryDto = {
+            name: 'User Created Category',
+            expense_type: ExpenseType.Income,
+            image_url: 'http://example.com/image.png',
+            percentage: 60,
+        };
+
         const response = await request(app.getHttpServer())
-            .get('/categories')
-            .set('Authorization', `Bearer ${token}`)
+            .post('/categories')
+            .set('Authorization', `Bearer ${userToken}`)
+            .send(createCategoryDto)
+            .expect(201);
+
+        createdCategoryId = response.body.id;
+        expect(response.body).toHaveProperty('id');
+        expect(response.body.name).toBe(createCategoryDto.name);
+    });
+
+    it('GET /categories should create a category by admin', async () => {
+      const createCategoryDto = {
+          name: 'Admin Created Category',
+          expense_type: ExpenseType.Expenses,
+          image_url: 'http://example.com/image.png',
+          percentage: 50,
+      };
+
+      await request(app.getHttpServer())
+          .post('/categories')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(createCategoryDto)
+          .expect(201);
+
+      const response = await request(app.getHttpServer())
+          .get('/categories')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send(createCategoryDto)
+          .expect(200);
+
+      expect(response.body).toBeInstanceOf(Array);
+      expect(response.body.length).toBeGreaterThan(0);
+  });
+
+    it('PUT /categories/:id should update a category', async () => {
+        const createCategoryDto = {
+            name: 'Update Category',
+            expense_type: ExpenseType.Expenses,
+            image_url: 'http://example.com/image.png',
+        };
+
+        const categoryResponse = await request(app.getHttpServer())
+            .post('/categories')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send(createCategoryDto)
+            .expect(201);
+
+        const updateCategoryDto = {
+            name: 'Updated Category Name',
+            expense_type: ExpenseType.Income,
+            image_url: 'http://example.com/new-image.png',
+        };
+
+        const updateResponse = await request(app.getHttpServer())
+            .put(`/categories/${categoryResponse.body.id}`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send(updateCategoryDto)
             .expect(200);
 
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(updateResponse.body.name).toBe(updateCategoryDto.name);
+        expect(updateResponse.body.expense_type).toBe(updateCategoryDto.expense_type);
     });
 
-    it('/categories (GET) should return all categories for admin', async () => {
-        const token = jwtService.sign({ id: 1, role: Role.Admin });
-        const response = await request(app.getHttpServer())
-            .get('/categories')
-            .set('Authorization', `Bearer ${token}`)
+    it('DELETE /categories/:id should delete a category by admin', async () => {
+        const createCategoryDto = {
+            name: 'Delete Me Category',
+            expense_type: ExpenseType.Expenses,
+            image_url: 'http://example.com/image.png',
+        };
+
+        const categoryResponse = await request(app.getHttpServer())
+            .post('/categories')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send(createCategoryDto)
+            .expect(201);
+
+        const deleteResponse = await request(app.getHttpServer())
+            .delete(`/categories/delete/${categoryResponse.body.id}`)
+            .set('Authorization', `Bearer ${adminToken}`)
             .expect(200);
 
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(deleteResponse.text).toMatch(/Категория с id \d+ удалена/);  // Заменено на более общий шаблон
     });
 
-    it('/categories/:id (DELETE) should return NOT_FOUND if category is not found', async () => {
-        const categoryId = 999; // Non-existing ID
-        const token = jwtService.sign({ id: 1, role: Role.Admin });
+    it('POST /categories/assign should throw NOT_FOUND if category does not exist', async () => {
+        const assignResponse = await request(app.getHttpServer())
+            .post('/categories/assign')
+            .set('Authorization', `Bearer ${userToken}`)
+            .send({
+                category_id: 999,
+                percentage: 20,
+            })
+            .expect(404);
+        
+        expect(assignResponse.body.message).toBe('Категория не найдена');
+    });
+
+    it('POST /categories/assign should return BAD_REQUEST for already assigned category', async () => {
+        const createCategoryDto = {
+            name: 'Assign Category',
+            expense_type: ExpenseType.Expenses,
+            image_url: 'http://example.com/image.png',
+        };
+
+        const categoryResponse = await request(app.getHttpServer())
+            .post('/categories')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send(createCategoryDto)
+            .expect(201);
+
+        const assignDto = {
+            category_id: categoryResponse.body.id,
+            percentage: 60,
+        };
 
         await request(app.getHttpServer())
-            .delete(`/categories/delete/${categoryId}`)
-            .set('Authorization', `Bearer ${token}`)
-            .expect(404);
+            .post('/categories/assign')
+            .set('Authorization', `Bearer ${userToken}`)
+            .send(assignDto)
+            .expect(400); // Повторное назначение должно выбросить BAD_REQUEST
     });
+});
+
+describe('GoalsController (e2e)', () => {
+  let app: INestApplication;
+  let goalsService: GoalsService;
+  let jwtService: JwtService;
+  let adminToken: string;
+  let userToken: string;
+  let userId: number;
+  let budgetId: number;
+  let goalId: number;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    goalsService = moduleFixture.get<GoalsService>(GoalsService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
+    await app.init();
+
+    // Регистрация администратора и пользователя
+    const adminResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'admin@example.com', password: 'adminpassword', username: 'adminuser' })
+      .expect(201);
+    adminToken = adminResponse.body.token;
+
+    const userResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'testuser@example.com', password: 'password', username: 'testuser' })
+      .expect(201);
+    userToken = userResponse.body.token;
+
+    // Получаем ID пользователя из токена
+    const decodedToken: any = jwtService.decode(userToken);
+    userId = decodedToken.id;
+
+    // Создаем категорию
+    const category = await Category.create({
+      name: 'Test Category',
+      expense_type: ExpenseType.Expenses,
+      image_url: 'http://example.com/image.png',
+    });
+
+    // Создаем связь между пользователем и категорией
+    const userCategory = await UserCategory.create({
+      user_id: userId,
+      category_id: category.id,
+      percentage: 50,
+    });
+
+    // Создаем бюджет для тестов
+    const budget = await Budget.create({
+      amount: 1000,
+      owner_id: userCategory.id, // Используем ID из user-categories
+    });
+    budgetId = budget.id;
+  });
+
+  afterEach(async () => {
+    // Удаляем созданные цели после каждого теста
+    if (goalId) {
+      await request(app.getHttpServer())
+        .delete(`/goals/delete/${goalId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+    }
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  describe('POST /goals', () => {
+    it('should create a new goal', async () => {
+      const createGoalDto: CreateGoalDto = {
+        name: 'Test Goal',
+        target_amount: 1000,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Завтрашняя дата
+        budget_id: budgetId, // Используем созданный бюджет
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/goals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createGoalDto)
+        .expect(201);
+
+      goalId = response.body.id; // Сохраняем ID созданной цели
+      expect(response.body.name).toBe(createGoalDto.name);
+      expect(response.body.target_amount).toBe(createGoalDto.target_amount);
+    });
+
+    it('should return 404 if budget does not exist', async () => {
+      const createGoalDto: CreateGoalDto = {
+        name: 'Test Goal',
+        target_amount: 1000,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: 999, // Несуществующий бюджет
+      };
+
+      await request(app.getHttpServer())
+        .post('/goals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createGoalDto)
+        .expect(404);
+    });
+  });
+
+  describe('GET /goals', () => {
+    it('should return 403 for user', async () => {
+      await request(app.getHttpServer())
+        .get('/goals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(403);
+    });
+    
+    it('should return goals for admin', async () => {
+        const newAdminToken = jwtService.sign({ id: 1, role: Role.Admin });
+        const response = await request(app.getHttpServer())
+          .get('/goals')
+          .set('Authorization', `Bearer ${newAdminToken}`)
+          .expect(200);
+  
+        expect(Array.isArray(response.body)).toBeTruthy();
+      });
+  });
+
+  describe('GET /goals/user', () => {
+    it('should retrieve goals for the authenticated user', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/goals/user')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBeTruthy();
+    });
+  });
+
+  describe('PUT /goals/:id', () => {
+    it('should update an existing goal', async () => {
+      // Создаем цель для обновления
+      const createGoalDto: CreateGoalDto = {
+        name: 'Test Goal',
+        target_amount: 1000,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: budgetId,
+      };
+
+      const createResponse = await request(app.getHttpServer())
+        .post('/goals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createGoalDto)
+        .expect(201);
+      goalId = createResponse.body.id;
+
+      const updateGoalDto = {
+        name: 'Updated Goal',
+        target_amount: 1500,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: budgetId,
+      };
+
+      const response = await request(app.getHttpServer())
+        .put(`/goals/${goalId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(updateGoalDto)
+        .expect(200);
+
+      expect(response.body.name).toBe(updateGoalDto.name);
+      expect(response.body.target_amount).toBe(updateGoalDto.target_amount);
+    });
+
+    it('should return 404 if goal does not exist', async () => {
+      const updateGoalDto = {
+        name: 'Updated Goal',
+        target_amount: 1500,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: budgetId,
+      };
+
+      const response = await request(app.getHttpServer())
+        .put(`/goals/${999}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(updateGoalDto)
+        .expect(404);
+    });
+
+    it('should return 403 if goal does not belong to user', async () => {
+      // Создаем цель для обновления
+      const createGoalDto: CreateGoalDto = {
+        name: 'Test Goal',
+        target_amount: 1000,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: budgetId,
+      };
+
+      const createResponse = await request(app.getHttpServer())
+        .post('/goals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createGoalDto)
+        .expect(201);
+      goalId = createResponse.body.id;
+
+      const updateGoalDto = {
+        name: 'Updated Goal',
+        target_amount: 1500,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: budgetId,
+      };
+
+      const newToken = jwtService.sign({id:5, role: Role.User});
+      const response = await request(app.getHttpServer())
+        .put(`/goals/${goalId}`)
+        .set('Authorization', `Bearer ${newToken}`)
+        .send(updateGoalDto)
+        .expect(403);
+    });
+  });
+
+  describe('DELETE /goals/:id', () => {
+    it('should delete an existing goal', async () => {
+      // Создаем цель для удаления
+      const createGoalDto: CreateGoalDto = {
+        name: 'Test Goal',
+        target_amount: 1000,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        budget_id: budgetId,
+      };
+
+      const createResponse = await request(app.getHttpServer())
+        .post('/goals')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createGoalDto)
+        .expect(201);
+      goalId = createResponse.body.id;
+
+      await request(app.getHttpServer())
+        .delete(`/goals/delete/${goalId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      // Проверяем, что цель удалена
+      const getResponse = await request(app.getHttpServer())
+        .get('/goals/user')
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(getResponse.body.find((goal) => goal.id === goalId)).toBeUndefined();
+    });
+  });
 });
 
 describe('BudgetController (e2e)', () => {
   let app: INestApplication;
   let jwtService: JwtService;
   let budgetService: BudgetService;
+  let createdCategoryId: number;
+  let category: Category;
+  let userCategory: UserCategory;
+  let createdUserCategoryId: number;
+  let userId: number;
+  let adminToken: string;
+  let userToken: string;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -433,21 +716,77 @@ describe('BudgetController (e2e)', () => {
     jwtService = moduleFixture.get<JwtService>(JwtService);
     budgetService = moduleFixture.get<BudgetService>(BudgetService);
     await app.init();
+
+    // Регистрация администратора
+    const adminResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'admin@example.com', password: 'adminpassword', username: 'adminuser' })
+      .expect(201);
+    adminToken = adminResponse.body.token;
+
+    // Регистрация пользователя
+    const userResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'testuser@example.com', password: 'password', username: 'testuser' })
+      .expect(201);
+    userToken = userResponse.body.token;
+
+    // Получаем ID пользователя из токена
+    const decodedToken: any = jwtService.decode(userToken);
+    userId = decodedToken.id;
+
+    // Создаем категорию
+    category = await Category.create({
+      name: 'Test Category',
+      expense_type: ExpenseType.Expenses,
+      image_url: 'http://example.com/image.png',
+    });
+    createdCategoryId = category.id;
+
+    // Создаем пользовательскую категорию
+    userCategory = await UserCategory.create({
+      user_id: userId,
+      category_id: createdCategoryId,
+      percentage: 50,
+    });
+    createdUserCategoryId = userCategory.id;
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
   });
 
+  afterEach(async () => {
+    // Очистка данных после каждого теста
+    if (createdCategoryId) {
+      await request(app.getHttpServer())
+        .delete(`/categories/delete/${createdCategoryId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+    }
+
+  });
+
   describe('POST /budgets', () => {
+    it('should create a new budget', async () => {
+      const createBudgetDto = { category_id: createdCategoryId, amount: 1000 };
+
+      const response = await request(app.getHttpServer())
+        .post('/budgets')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.category_name).toBe('Test Category');
+      expect(response.body.amount).toBe(1000);
+    });
 
     it('should return 404 if category not found', async () => {
-      const token = jwtService.sign({ id: 1 });
       const createBudgetDto = { category_id: 999, amount: 1000 };
 
       const response = await request(app.getHttpServer())
         .post('/budgets')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send(createBudgetDto)
         .expect(404);
 
@@ -455,16 +794,20 @@ describe('BudgetController (e2e)', () => {
     });
 
     it('should return 404 if user category not found', async () => {
-      const token = jwtService.sign({ id: 1 });
-      const createBudgetDto = { category_id: 1, amount: 1000 };
+        let newCategoryId;
+        // Создаем категорию
+      const category = await Category.create({
+        name: 'Test Category',
+        expense_type: ExpenseType.Expenses,
+        image_url: 'http://example.com/image.png',
+      });
+      newCategoryId = category.id;
 
-      jest.spyOn(budgetService, 'createBudget').mockRejectedValueOnce(
-        new HttpException('Пользователь не указал процент трат категории', HttpStatus.NOT_FOUND),
-      );
+      const createBudgetDto = { category_id: newCategoryId, amount: 1000 };
 
       const response = await request(app.getHttpServer())
         .post('/budgets')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send(createBudgetDto)
         .expect(404);
 
@@ -472,16 +815,19 @@ describe('BudgetController (e2e)', () => {
     });
 
     it('should return 400 if budget already exists', async () => {
-      const token = jwtService.sign({ id: 1 });
-      const createBudgetDto = { category_id: 1, amount: 1000 };
+        
+      const createBudgetDto = { category_id: createdCategoryId, amount: 1000 };
 
-      jest.spyOn(budgetService, 'createBudget').mockRejectedValueOnce(
-        new HttpException('Счет для данной категории уже существует', HttpStatus.BAD_REQUEST),
-      );
+      const response_1 = await request(app.getHttpServer())
+        .post('/budgets')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
+        .expect(201);
 
+      // Пытаемся создать второй бюджет для той же категории
       const response = await request(app.getHttpServer())
         .post('/budgets')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send(createBudgetDto)
         .expect(400);
 
@@ -491,133 +837,153 @@ describe('BudgetController (e2e)', () => {
 
   describe('GET /budgets', () => {
     it('should return user budgets', async () => {
-      const token = jwtService.sign({ id: 1 });
+      const createBudgetDto = { category_id: createdCategoryId, amount: 1000 };
 
-      const mockBudgets = [
-        { id: 1, category_name: 'Food', amount: 1000 },
-        { id: 2, category_name: 'Transport', amount: 500 },
-      ];
-
-      jest.spyOn(budgetService, 'getUserBudgets').mockResolvedValueOnce(mockBudgets);
+      // Создаем бюджет
+      await request(app.getHttpServer())
+        .post('/budgets')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
+        .expect(201);
 
       const response = await request(app.getHttpServer())
         .get('/budgets')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(response.body).toEqual(mockBudgets);
+      expect(response.body).toBeInstanceOf(Array);
+      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body[0]).toHaveProperty('category_name', 'Test Category');
+      expect(response.body[0]).toHaveProperty('amount', 1000);
     });
   });
 
   describe('PUT /budgets', () => {
     it('should update budget amount', async () => {
-      const token = jwtService.sign({ id: 1 });
-      const updateBudgetDto = { category_id: 1, amount: 1500 };
+      const createBudgetDto = { category_id: createdCategoryId, amount: 1000 };
 
-      const mockUpdatedBudget = { id: 1, category_name: 'Food', amount: 1500 };
+      // Создаем бюджет
+      const budgetResponse = await request(app.getHttpServer())
+        .post('/budgets')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
+        .expect(201);
 
-      jest.spyOn(budgetService, 'updateBudgetAmount').mockResolvedValueOnce(mockUpdatedBudget);
+      const updateBudgetDto = { category_id: createdCategoryId, amount: 1500 };
 
       const response = await request(app.getHttpServer())
         .put('/budgets')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send(updateBudgetDto)
         .expect(200);
 
-      expect(response.body).toEqual(mockUpdatedBudget);
+      expect(response.body.amount).toBe(1500);
+      expect(response.body.category_name).toBe('Test Category');
     });
 
     it('should return 404 if category not found', async () => {
-      const token = jwtService.sign({ id: 1 });
+      
       const updateBudgetDto = { category_id: 999, amount: 1500 };
-
-      jest.spyOn(budgetService, 'updateBudgetAmount').mockRejectedValueOnce(
-        new HttpException('Категория не найдена', HttpStatus.NOT_FOUND),
-      );
 
       const response = await request(app.getHttpServer())
         .put('/budgets')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .send(updateBudgetDto)
         .expect(404);
 
       expect(response.body.message).toBe('Категория не найдена');
     });
 
-    it('should return 404 if user category not found', async () => {
-      const token = jwtService.sign({ id: 1 });
-      const updateBudgetDto = { category_id: 1, amount: 1500 };
-
-      jest.spyOn(budgetService, 'updateBudgetAmount').mockRejectedValueOnce(
-        new HttpException('Пользователь не указал процент трат категории', HttpStatus.NOT_FOUND),
-      );
-
-      const response = await request(app.getHttpServer())
-        .put('/budgets')
-        .set('Authorization', `Bearer ${token}`)
-        .send(updateBudgetDto)
-        .expect(404);
-
-      expect(response.body.message).toBe('Пользователь не указал процент трат категории');
-    });
-
     it('should return 404 if budget not found', async () => {
-      const token = jwtService.sign({ id: 1 });
-      const updateBudgetDto = { category_id: 1, amount: 1500 };
+        let newCategoryId;
+        // Создаем категорию
+      const category = await Category.create({
+        name: 'Test Category',
+        expense_type: ExpenseType.Expenses,
+        image_url: 'http://example.com/image.png',
+      });
+      newCategoryId = category.id;
+      const newUserCategory = await UserCategory.create({
+        user_id: userId,
+        category_id: newCategoryId,
+        percentage: 50,
+      });
 
-      jest.spyOn(budgetService, 'updateBudgetAmount').mockRejectedValueOnce(
-        new HttpException('Счет для данной категории не найден', HttpStatus.NOT_FOUND),
-      );
+      const createBudgetDto = { category_id: newCategoryId, amount: 1000 };
 
       const response = await request(app.getHttpServer())
         .put('/budgets')
-        .set('Authorization', `Bearer ${token}`)
-        .send(updateBudgetDto)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
         .expect(404);
 
       expect(response.body.message).toBe('Счет для данной категории не найден');
     });
+    
+    it('should return 404 if user category not found', async () => {
+      let newCategoryId;
+      // Создаем категорию
+    const category = await Category.create({
+      name: 'Test Category',
+      expense_type: ExpenseType.Expenses,
+      image_url: 'http://example.com/image.png',
+    });
+    newCategoryId = category.id;
+
+    const createBudgetDto = { category_id: newCategoryId, amount: 1000 };
+
+    const response = await request(app.getHttpServer())
+      .put('/budgets')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send(createBudgetDto)
+      .expect(404);
+
+    expect(response.body.message).toBe('Пользователь не указал процент трат категории');
+  });
   });
 
   describe('DELETE /budgets/:id', () => {
     it('should delete a budget', async () => {
-      const token = jwtService.sign({ id: 1 });
+      const createBudgetDto = { category_id: createdCategoryId, amount: 1000 };
 
-      jest.spyOn(budgetService, 'deleteBudget').mockResolvedValueOnce({ message: 'Счет 1 успешно удалён' });
+      // Создаем бюджет
+      const budgetResponse = await request(app.getHttpServer())
+        .post('/budgets')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
+        .expect(201);
 
       const response = await request(app.getHttpServer())
-        .delete('/budgets/1')
-        .set('Authorization', `Bearer ${token}`)
+        .delete(`/budgets/${budgetResponse.body.id}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
-      expect(response.body).toEqual({ message: 'Счет 1 успешно удалён' });
+      expect(response.body).toEqual({ message: `Счет ${budgetResponse.body.id} успешно удалён` });
     });
 
     it('should return 404 if budget not found', async () => {
-      const token = jwtService.sign({ id: 1 });
-
-      jest.spyOn(budgetService, 'deleteBudget').mockRejectedValueOnce(
-        new HttpException('Счет не найден', HttpStatus.NOT_FOUND),
-      );
-
       const response = await request(app.getHttpServer())
         .delete('/budgets/999')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${userToken}`)
         .expect(404);
 
       expect(response.body.message).toBe('Счет не найден');
     });
 
-    it('should return 403 if user tries to delete someone else\'s budget', async () => {
-      const token = jwtService.sign({ id: 1 });
+    it("should return 403 if user tries to delete someone else's budget", async () => {
+      const createBudgetDto = { category_id: createdCategoryId, amount: 1000 };
+      const newToken =  jwtService.sign({ id: 999, role: Role.Admin });
+      // Создаем бюджет от имени администратора
+      const budgetResponse = await request(app.getHttpServer())
+        .post('/budgets')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send(createBudgetDto)
+        .expect(201);
 
-      jest.spyOn(budgetService, 'deleteBudget').mockRejectedValueOnce(
-        new HttpException('Вы не можете удалить чужой счет', HttpStatus.FORBIDDEN),
-      );
-
+      // Пытаемся удалить бюджет от имени другого пользователя
       const response = await request(app.getHttpServer())
-        .delete('/budgets/2')
-        .set('Authorization', `Bearer ${token}`)
+        .delete(`/budgets/${budgetResponse.body.id}`)
+        .set('Authorization', `Bearer ${newToken}`)
         .expect(403);
 
       expect(response.body.message).toBe('Вы не можете удалить чужой счет');
@@ -704,4 +1070,4 @@ describe('TransactionsController (e2e)', () => {
         .expect(404);
     });
   });
-});*/
+});

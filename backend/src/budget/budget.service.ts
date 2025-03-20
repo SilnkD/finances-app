@@ -93,7 +93,7 @@ export class BudgetService {
     async deleteBudget(id: number, userId: number): Promise<{ message: string }> {
         const budget = await this.budgetRepository.findByPk(id);
         if (!budget) {
-            throw new HttpException('Счет нен найден', HttpStatus.NOT_FOUND);
+            throw new HttpException('Счет не найден', HttpStatus.NOT_FOUND);
         }
         const userCategory = await this.userCategoryRepository.findByPk(budget?.owner_id);
         if (userCategory && userCategory.user_id!=userId) {
