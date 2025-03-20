@@ -51,7 +51,7 @@ describe('TransactionsController', () => {
 
     const result = await transactionsController.createTransaction(dto, req);
 
-    expect(transactionsService.createTransaction).toHaveBeenCalledWith(dto);
+    expect(transactionsService.createTransaction).toHaveBeenCalledWith(dto, req.user.id);
     expect(result).toEqual({
       id: 1,
       ...dto,

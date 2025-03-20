@@ -40,76 +40,124 @@ describe('TransactionsService', () => {
     transactionsService = module.get<TransactionsService>(TransactionsService);
   });
 
-  it('should create a transaction', async () => {
-    const dto = { budget_id: 1, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' };
-    const mockBudget = { id: 1 };
+  describe('createTransaction', () => {
+    it('should successfully create a transaction', async () => {
+      const dto = { budget_id: 1, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' };
+      const mockBudget = { id: 1 };
+      const mockTransaction = { id: 1, ...dto };
 
-    mockBudgetRepository.findOne.mockResolvedValue(mockBudget);
-    mockTransactionRepository.create.mockResolvedValue({ id: 1, ...dto });
+      mockBudgetRepository.findOne.mockResolvedValue(mockBudget);
+      mockTransactionRepository.create.mockResolvedValue(mockTransaction);
 
-    const result = await transactionsService.createTransaction(dto);
+      const result = await transactionsService.createTransaction(dto, 1);
 
-    expect(mockBudgetRepository.findOne).toHaveBeenCalledWith({ where: { id: dto.budget_id } });
-    expect(mockBudgetService.updateBudgetAmount).toHaveBeenCalledWith(mockBudget.id, dto.amount);
-    expect(mockTransactionRepository.create).toHaveBeenCalledWith(dto);
-    expect(result).toEqual({ id: 1, ...dto });
-  });
-
-  it('should throw an error if budget is not found when creating a transaction', async () => {
-    const dto = { budget_id: 999, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' };
-
-    mockBudgetRepository.findOne.mockResolvedValue(null);
-
-    await expect(transactionsService.createTransaction(dto)).rejects.toThrow(
-      new HttpException('Счет не найден', HttpStatus.NOT_FOUND),
-    );
-
-    expect(mockBudgetRepository.findOne).toHaveBeenCalledWith({ where: { id: dto.budget_id } });
-    expect(mockBudgetService.updateBudgetAmount).not.toHaveBeenCalled();
-    expect(mockTransactionRepository.create).not.toHaveBeenCalled();
-  });
-
-  it('should return transactions by budget ID', async () => {
-    const budget_id = 1;
-    const transactions = [
-      { id: 1, budget_id, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' },
-    ];
-
-    mockTransactionRepository.findAll.mockResolvedValue(transactions);
-
-    const result = await transactionsService.getTransactionsByBudget(budget_id);
-
-    expect(mockTransactionRepository.findAll).toHaveBeenCalledWith({
-      where: { budget_id },
-      include: { all: true },
+      expect(mockBudgetRepository.findOne).toHaveBeenCalledWith({ where: { id: dto.budget_id } });
+      expect(mockBudgetService.updateBudgetAmount).toHaveBeenCalledWith({ category_id: mockBudget.id, amount: dto.amount }, 1);
+      expect(mockTransactionRepository.create).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(mockTransaction);
     });
-    expect(result).toEqual(transactions);
+
+    it('should throw an error if budget is not found', async () => {
+      const dto = { budget_id: 999, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' };
+
+      mockBudgetRepository.findOne.mockResolvedValue(null);
+
+      await expect(transactionsService.createTransaction(dto, 1)).rejects.toThrow(
+        new HttpException('Счет не найден', HttpStatus.NOT_FOUND),
+      );
+
+      expect(mockBudgetRepository.findOne).toHaveBeenCalledWith({ where: { id: dto.budget_id } });
+      expect(mockBudgetService.updateBudgetAmount).not.toHaveBeenCalled();
+      expect(mockTransactionRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error if budgetService.updateBudgetAmount fails', async () => {
+      const dto = { budget_id: 1, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' };
+      const mockBudget = { id: 1 };
+
+      mockBudgetRepository.findOne.mockResolvedValue(mockBudget);
+      mockBudgetService.updateBudgetAmount.mockRejectedValue(new Error('Budget update failed'));
+
+      await expect(transactionsService.createTransaction(dto, 1)).rejects.toThrow('Budget update failed');
+
+      expect(mockBudgetRepository.findOne).toHaveBeenCalledWith({ where: { id: dto.budget_id } });
+      expect(mockBudgetService.updateBudgetAmount).toHaveBeenCalledWith({ category_id: mockBudget.id, amount: dto.amount }, 1);
+      expect(mockTransactionRepository.create).not.toHaveBeenCalled();
+    });
   });
 
-  it('should delete a transaction', async () => {
-    const transactionId = 1;
-    const mockTransaction = { id: 1 };
+  describe('getTransactionsByBudget', () => {
+    it('should return transactions for a given budget ID', async () => {
+      const budget_id = 1;
+      const mockTransactions = [
+        { id: 1, budget_id, amount: 100, date: new Date().toISOString(), description: 'Test Transaction' },
+      ];
 
-    mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
-    mockTransactionRepository.destroy.mockResolvedValue(1);
+      mockTransactionRepository.findAll.mockResolvedValue(mockTransactions);
 
-    const result = await transactionsService.deleteTransaction(transactionId);
+      const result = await transactionsService.getTransactionsByBudget(budget_id);
 
-    expect(mockTransactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
-    expect(mockTransactionRepository.destroy).toHaveBeenCalledWith({ where: { id: transactionId } });
-    expect(result).toBe(`Транзакция с id ${transactionId} удалена.`);
+      expect(mockTransactionRepository.findAll).toHaveBeenCalledWith({
+        where: { budget_id },
+        include: { all: true },
+      });
+      expect(result).toEqual(mockTransactions);
+    });
+
+    it('should return an empty array if no transactions are found', async () => {
+      const budget_id = 999;
+
+      mockTransactionRepository.findAll.mockResolvedValue([]);
+
+      const result = await transactionsService.getTransactionsByBudget(budget_id);
+
+      expect(mockTransactionRepository.findAll).toHaveBeenCalledWith({
+        where: { budget_id },
+        include: { all: true },
+      });
+      expect(result).toEqual([]);
+    });
   });
 
-  it('should throw an error if transaction is not found when deleting', async () => {
-    const transactionId = 999;
+  describe('deleteTransaction', () => {
+    it('should successfully delete a transaction', async () => {
+      const transactionId = 1;
+      const mockTransaction = { id: 1 };
 
-    mockTransactionRepository.findOne.mockResolvedValue(null);
+      mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
+      mockTransactionRepository.destroy.mockResolvedValue(1);
 
-    await expect(transactionsService.deleteTransaction(transactionId)).rejects.toThrow(
-      new HttpException('Транзакция не найдена', HttpStatus.NOT_FOUND),
-    );
+      const result = await transactionsService.deleteTransaction(transactionId);
 
-    expect(mockTransactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
-    expect(mockTransactionRepository.destroy).not.toHaveBeenCalled();
+      expect(mockTransactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
+      expect(mockTransactionRepository.destroy).toHaveBeenCalledWith({ where: { id: transactionId } });
+      expect(result).toBe(`Транзакция с id ${transactionId} удалена.`);
+    });
+
+    it('should throw an error if transaction is not found', async () => {
+      const transactionId = 999;
+
+      mockTransactionRepository.findOne.mockResolvedValue(null);
+
+      await expect(transactionsService.deleteTransaction(transactionId)).rejects.toThrow(
+        new HttpException('Транзакция не найдена', HttpStatus.NOT_FOUND),
+      );
+
+      expect(mockTransactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
+      expect(mockTransactionRepository.destroy).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error if transactionRepository.destroy fails', async () => {
+      const transactionId = 1;
+      const mockTransaction = { id: 1 };
+
+      mockTransactionRepository.findOne.mockResolvedValue(mockTransaction);
+      mockTransactionRepository.destroy.mockRejectedValue(new Error('Deletion failed'));
+
+      await expect(transactionsService.deleteTransaction(transactionId)).rejects.toThrow('Deletion failed');
+
+      expect(mockTransactionRepository.findOne).toHaveBeenCalledWith({ where: { id: transactionId } });
+      expect(mockTransactionRepository.destroy).toHaveBeenCalledWith({ where: { id: transactionId } });
+    });
   });
 });

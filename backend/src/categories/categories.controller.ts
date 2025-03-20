@@ -16,21 +16,18 @@ export class CategoriesController {
   @ApiResponse({ status: 201, description: 'Категория успешно создана', type: GetCategoryDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
-  @ApiResponse({ status: 403, description: 'Доступ запрещен'})
   @UseGuards(IdGuard)
   @ApiBearerAuth()
   @Post()
   async createCategory(@Body() createCategoryDto: CreateCategoryDto, @Request() req) {
     const userId = req.user.id;  // Получение userId из JWT токена
     const userRole = req.user.role;
-    return this.categService.createCategory(createCategoryDto, userId, userRole==Role.Admin);
+    return this.categService.createCategory(createCategoryDto, userId, userRole == Role.Admin);
   }
   
   @ApiOperation({ summary: 'Присвоение категории пользователю' })
   @ApiResponse({ status: 201, description: 'Категория успешно добавлена', type: GetCategoryDto })
   @ApiResponse({ status: 400, description: 'Некорректные данные или категория уже присвоена пользователю' })
-  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
-  @ApiResponse({ status: 403, description: 'Доступ запрещен' })
   @ApiResponse({ status: 404, description: 'Категория не найдена' })
   @UseGuards(IdGuard)
   @ApiBearerAuth()
@@ -43,20 +40,17 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Получение категорий' })
   @ApiResponse({ status: 200, description: 'Категории успешно получены', type: [GetCategoryDto] })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
-  @ApiResponse({ status: 403, description: 'Доступ запрещен'})
   @UseGuards(IdGuard)
   @ApiBearerAuth()
   @Get()
   async getCategories(@Request() req) {
     const userId = req.user.id;
     const userRole = req.user.role;
-    return this.categService.findAllCategoriesByUser(userId, userRole==Role.Admin);
+    return this.categService.findAllCategoriesByUser(userId, userRole == Role.Admin);
   }
   
   @ApiOperation({ summary: 'Удаление категории' })
   @ApiResponse({ status: 200, description: 'Категория успешно удалена' })
-  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
-  @ApiResponse({ status: 403, description: 'Вы не можете удалить чужую категорию' })
   @ApiResponse({ status: 404, description: 'Категория не найдена' })
   @UseGuards(IdGuard)
   @ApiBearerAuth()
@@ -64,14 +58,11 @@ export class CategoriesController {
   async deleteCategories(@Request() req, @Param('id') category_id: string) {
     const userId = req.user.id;
     const userRole = req.user.role;
-    return this.categService.deleteCategory(userId, userRole==Role.Admin, Number(category_id));
+    return this.categService.deleteCategory(userId, userRole == Role.Admin, Number(category_id));
   }
 
-  
   @ApiOperation({ summary: 'Обновление категории' })
   @ApiResponse({ status: 200, description: 'Категория успешно обновлена', type: GetCategoryDto })
-  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
-  @ApiResponse({ status: 403, description: 'Вы не можете изменить чужую категорию' })
   @ApiResponse({ status: 404, description: 'Категория не найдена' })
   @UseGuards(IdGuard)
   @ApiBearerAuth()
@@ -79,6 +70,6 @@ export class CategoriesController {
   async updateCategory(@Body() updateCategoryDto: CreateCategoryDto, @Request() req, @Param('id') category_id: string) {
     const userId = req.user.id;
     const userRole = req.user.role;
-      return this.categService.updateCategory(Number(category_id), updateCategoryDto, userId, userRole);
+    return this.categService.updateCategory(Number(category_id), updateCategoryDto, userId, userRole);
   }
 }

@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from 'src/common/enums/roles.enum';
 import { UsersService } from 'src/users/users.service';
+import { AccessType } from 'src/common/enums/access-type.enum';
 
 describe('AuthController (e2e)', () => {
     let app: INestApplication;
@@ -253,6 +254,17 @@ describe('CategoriesController (e2e)', () => {
         expect(response.body).toHaveProperty('id');
     });
 
+    it('/categories/assign (POST) should return 404 if category does not exist', async () => {
+        const assignCategoryDto = { category_id: 999, percentage: 50 };
+        const token = jwtService.sign({ id: 1, role: Role.User });
+
+        await request(app.getHttpServer())
+            .post('/categories/assign')
+            .set('Authorization', `Bearer ${token}`)
+            .send(assignCategoryDto)
+            .expect(404);
+    });
+
     it('/categories (GET) should return categories for user', async () => {
         const token = jwtService.sign({ id: 1, role: Role.User });
 
@@ -261,6 +273,17 @@ describe('CategoriesController (e2e)', () => {
             .set('Authorization', `Bearer ${token}`)
             .expect(200);
 
+        expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it('/categories (GET) should return all categories for admin', async () => {
+        const token = jwtService.sign({ id: 1, role: Role.Admin });
+    
+        const response = await request(app.getHttpServer())
+            .get('/categories')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200);
+    
         expect(Array.isArray(response.body)).toBe(true);
     });
 
@@ -297,7 +320,6 @@ describe('CategoriesController (e2e)', () => {
     });
 
 });
-
 
 /*
 describe('BudgetController (e2e)', () => {
