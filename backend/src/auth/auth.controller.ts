@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login-dto';
 import { User } from 'src/database/models/users.model';
 import { IdGuard } from '../common/guards/auth.guard';
 import { UpdateUserDto } from './dto/update-user-dto';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Авторизация')
 @Controller('auth')
@@ -17,6 +18,7 @@ export class AuthController {
     @ApiOperation({summary: 'Авторизация пользователя'})
     @ApiResponse({ status: 201, description: 'Пользователь успешно авторизован', type: TokenResponseDto })
     @ApiResponse({ status: 401, description: 'Неправильный email или пароль' })
+    @Throttle({ default: { limit: 3, ttl: 60 } })
     @Post('/login')
     login(@Body() loginDto: LoginDto) {
         return this.authService.login(loginDto);

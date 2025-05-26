@@ -14,6 +14,8 @@ import * as process from 'process'; // Import process for environment variable a
 import { GoalsModule } from './goals/goals.module';
 import { BudgetModule } from './budget/budget.module';
 import { UsersModule } from './users/users.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -39,6 +41,14 @@ import { UsersModule } from './users/users.module';
         autoLoadModels: true,
       }),
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60, 
+          limit: 1, // Максимум 10 запросов за ttl, 1 минуту
+        }
+      ]
+    }),
     AuthModule,
     CategoriesModule,
     TransactionsModule,
@@ -47,6 +57,11 @@ import { UsersModule } from './users/users.module';
     UsersModule
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
