@@ -19,6 +19,12 @@ import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+        {
+          ttl: 60000, 
+          limit: 10, // Максимум 10 запросов за ttl, 1 минуту
+        }
+  ]),
     ConfigModule.forRoot({
       envFilePath: `.development.env`, 
       isGlobal: true, 
@@ -40,14 +46,6 @@ import { APP_GUARD } from '@nestjs/core';
         models: [User, Category, UserCategory, Goal, Budget, Transaction],
         autoLoadModels: true,
       }),
-    }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60, 
-          limit: 1, // Максимум 10 запросов за ttl, 1 минуту
-        }
-      ]
     }),
     AuthModule,
     CategoriesModule,
