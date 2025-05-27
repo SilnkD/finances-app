@@ -29,7 +29,11 @@ export class AuthService {
         if (candidate) {
             throw new HttpException('Пользователь с таким email уже зарегистрирован', HttpStatus.BAD_REQUEST);
         }
-        const hashPassword = await bcrypt.hash(registerDto.password, 5);
+        console.log(registerDto.password);
+        const salt = await bcrypt.genSalt(10);
+        const hashPassword = await bcrypt.hash(registerDto.password, salt);
+        console.log(hashPassword);
+
         const user = await this.userService.createUser({...registerDto, password: hashPassword}); // dto с измененным паролем
         return this.generateToken(user);
     }
